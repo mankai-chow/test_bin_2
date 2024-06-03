@@ -75,17 +75,17 @@ subroutine diagonalisation(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_
     real(8), intent(in) :: tol
     complex(8), intent(out) :: eigval(nst + 1), eigvec(dim, nst + 1)
 
-    integer(4) :: nit
+    integer :: nit
 
     ! znaupd type_basis
     character :: bmat * 1, which * 2
-    integer(4) :: ido, n, ncv, nev, ldv, iparam(11), ipntr(14), lworkl, info
+    integer :: ido, n, ncv, nev, ldv, iparam(11), ipntr(14), lworkl, info
     complex(8), allocatable :: resid(:), v(:,:), workd(:), workl(:)
     real(8), allocatable :: rwork(:)
 
     ! zneupd type_basis
     logical :: rvec
-    integer(4) :: ldz
+    integer :: ldz
     character :: howmny * 1
     complex(8) :: sigma
     logical, allocatable :: select(:)

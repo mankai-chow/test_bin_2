@@ -73,18 +73,18 @@ subroutine diagonalisation_re(dim, sym_q, nel, colptr, rowid, elval, nst, tol, n
     real(8), intent(in) :: tol
     real(8), intent(out) :: eigval(nst + 1), eigvec(dim, nst + 1)
 
-    integer(4) :: nit
+    integer :: nit
 
     ! dnaupd type_basis
     character :: bmat * 1, which * 2
-    integer(4) :: ido, n, ncv, nev, ldv, iparam(11), ipntr(14), lworkl, info
+    integer :: ido, n, ncv, nev, ldv, iparam(11), ipntr(14), lworkl, info
     real(8) :: eigval_im(nst + 1)
     real(8), allocatable :: resid(:), v(:,:), workd(:), workl(:)
     real(8), allocatable :: rwork(:)
 
     ! dneupd type_basis
     logical :: rvec
-    integer(4) :: ldz
+    integer :: ldz
     character :: howmny * 1
     real(8) :: sigmar, sigmai
     logical, allocatable :: select(:)
