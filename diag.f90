@@ -75,17 +75,17 @@ subroutine diagonalisation(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_
     real(8), intent(in) :: tol
     complex(8), intent(out) :: eigval(nst + 1), eigvec(dim, nst + 1)
 
-    integer :: nit
+    integer * 8 :: nit
 
     ! znaupd type_basis
     character :: bmat * 1, which * 2
-    integer :: ido, n, ncv, nev, ldv, iparam(11), ipntr(14), lworkl, info
+    integer * 8 :: ido, n, ncv, nev, ldv, iparam(11), ipntr(14), lworkl, info
     complex(8), allocatable :: resid(:), v(:,:), workd(:), workl(:)
     real(8), allocatable :: rwork(:)
 
     ! zneupd type_basis
     logical :: rvec
-    integer :: ldz
+    integer * 8 :: ldz
     character :: howmny * 1
     complex(8) :: sigma
     logical, allocatable :: select(:)
@@ -118,7 +118,7 @@ subroutine diagonalisation(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_
         call znaupd(ido, bmat, n, which, nev, tol, resid, ncv, v, &
             ldv, iparam, ipntr, workd, workl, lworkl, rwork, info)
         nit = nit + 1
-        if (mod(nit, 100) == 0) print *, 'Diagonisation, iteration : ', nit
+        if (mod(nit, 1) == 0) print *, 'Diagonisation, iteration : ', nit
     end do
     if (info < 0 .or. ido /= 99) print *, 'Errors in znaupd, info =', info
 

@@ -73,18 +73,18 @@ subroutine diagonalisation_re(dim, sym_q, nel, colptr, rowid, elval, nst, tol, n
     real(8), intent(in) :: tol
     real(8), intent(out) :: eigval(nst + 1), eigvec(dim, nst + 1)
 
-    integer :: nit
+    integer * 8 :: nit
 
     ! dnaupd type_basis
     character :: bmat * 1, which * 2
-    integer :: ido, n, ncv, nev, ldv, iparam(11), ipntr(14), lworkl, info
+    integer * 8 :: ido, n, ncv, nev, ldv, iparam(11), ipntr(14), lworkl, info
     real(8) :: eigval_im(nst + 1)
     real(8), allocatable :: resid(:), v(:,:), workd(:), workl(:)
     real(8), allocatable :: rwork(:)
 
     ! dneupd type_basis
     logical :: rvec
-    integer :: ldz
+    integer * 8 :: ldz
     character :: howmny * 1
     real(8) :: sigmar, sigmai
     logical, allocatable :: select(:)
@@ -113,11 +113,11 @@ subroutine diagonalisation_re(dim, sym_q, nel, colptr, rowid, elval, nst, tol, n
         ldv, iparam, ipntr, workd, workl, lworkl, info)
     nit = 0
     do while (ido == 1 .or. ido == -1)
-        call vec_prod_re(dim, dim, sym_q, nel, colptr, rowid, elval, workd(ipntr(1)),  workd(ipntr(2)))
+        call vec_prod_re(dim, dim, sym_q, nel, colptr, rowid, elval, workd(ipntr(1)), workd(ipntr(2)))
         call dnaupd(ido, bmat, n, which, nev, tol, resid, ncv, v, &
             ldv, iparam, ipntr, workd, workl, lworkl, info)
         nit = nit + 1
-        if (mod(nit, 100) == 0) print *, 'Diagonisation, iteration : ', nit
+        if (mod(nit, 1) == 0) print *, 'Diagonisation, iteration : ', nit
     end do
     if (info < 0 .or. ido /= 99) print *, 'Errors in dnaupd, info =', info
 
