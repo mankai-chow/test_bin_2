@@ -7,7 +7,7 @@ contains
 subroutine generate_trs(no, nor, ncf, lid, rid, conf, perm_o, ph_o, fac_o, id_f, phase)
     implicit none
     integer(8), intent(in) :: no, nor, ncf
-    integer(8), intent(in) :: lid(ibset(0_8, no - nor) + 1), rid(ibset(0_8, nor)), conf(ncf)
+    integer(8), intent(in) :: lid(kibset(0_8, no - nor) + 1), rid(kibset(0_8, nor)), conf(ncf)
     integer(8), intent(in) :: perm_o(no), ph_o(no)
     complex(8), intent(in) :: fac_o(no)
     integer(8), intent(out) :: id_f(ncf)
@@ -18,10 +18,9 @@ subroutine generate_trs(no, nor, ncf, lid, rid, conf, perm_o, ph_o, fac_o, id_f,
 
     cf0 = 0 
     do o = 0, no - 1
-        if (ph_o(o + 1) == 1) cf0 = ibset(cf0, o)
+        if (ph_o(o + 1) == 1) cf0 = kibset(cf0, o)
     end do
-    !$omp parallel shared(no, nor, perm_o, fac_o, ncf, lid, rid, conf, id_f, phase, cf0), &
-    !$omp& private(i, o, o1, cf, cf1, cfp, ne, sgn, phi)
+    !$omp parallel shared(no, nor, perm_o, fac_o, ncf, lid, rid, conf, id_f, phase, cf0) private(i, o, o1, cf, cf1, ne, sgn, phi)
     !$omp do 
     do i = 1, ncf
         cf = conf(i)
@@ -31,14 +30,14 @@ subroutine generate_trs(no, nor, ncf, lid, rid, conf, perm_o, ph_o, fac_o, id_f,
         cfp = 0
         do o = no - 1, 0, -1
             o1 = perm_o(o + 1) - 1 
-            if (ibits(cf, o, 1_8) == 0) cycle
+            if (kibits(cf, o, 1_8) == 0) cycle
             phi = phi * fac_o(o + 1)
-            cf1 = ieor(cf1, ibset(0_8, o1))
-            cfp = ieor(cfp, ibits(cf1, 0_8, o1))
+            cf1 = kieor(cf1, kibset(0_8, o1))
+            cfp = kieor(cfp, kibits(cf1, 0_8, o1))
         end do
         sgn = 0
         do o = 0, no - 1
-            sgn = ieor(sgn, ibits(cfp, o, 1_8))
+            sgn = kieor(sgn, kibits(cfp, o, 1_8))
         end do
         if (sgn == 1) phi = -phi
         id_f(i) = search_conf(no, nor, lid, rid, cf1)
@@ -51,7 +50,7 @@ end subroutine
 subroutine generate_bs_cfgr(no, nor, ncf, lid, rid, conf, nqnz, qnz_s, cyc, perm_o, ph_o, fac_o, szz, dim, cfgr, cffac)
     implicit none
     integer(8), intent(in) :: no, nor, ncf
-    integer(8), intent(in) :: lid(ibset(0_8, no - nor) + 1), rid(ibset(0_8, nor)), conf(ncf)
+    integer(8), intent(in) :: lid(kibset(0_8, no - nor) + 1), rid(kibset(0_8, nor)), conf(ncf)
     integer(8), intent(in) :: nqnz, cyc(nqnz), szz
     complex(8), intent(in) :: qnz_s(nqnz)
     integer(8), intent(in) :: perm_o(no, nqnz), ph_o(no, nqnz)

@@ -8,16 +8,16 @@ subroutine count_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid)
     implicit none
     integer(8), intent(in) :: no, nor, nqnu
     integer(8), intent(in) :: qnu_s(nqnu), qnu_o(no, nqnu), modul(nqnu)
-    integer(8), intent(out) :: lid(ibset(0_8, no - nor) + 1)
+    integer(8), intent(out) :: lid(kibset(0_8, no - nor) + 1)
     integer(8), intent(out) :: ncf
     integer(8) :: qnu_1(nqnu), i, j
 
     !$omp parallel shared(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid) private(qnu_1, i, j)
     !$omp do
-    do i = 0, ibset(0_8, no - nor) - 1
+    do i = 0, kibset(0_8, no - nor) - 1
         qnu_1 = qnu_s
         do j = nor + 1, no
-            if (ibits(i, j - nor - 1, 1_8) == 0) cycle
+            if (kibits(i, j - nor - 1, 1_8) == 0) cycle
             qnu_1 = qnu_1 - qnu_o(j, :)
         end do
         lid(i + 2) = 0
@@ -26,10 +26,10 @@ subroutine count_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid)
     !$omp end do
     !$omp end parallel
     lid(1) = 0
-    do i = 1, ibset(0_8, no - nor)
+    do i = 1, kibset(0_8, no - nor)
         lid(i + 1) = lid(i + 1) + lid(i)
     end do
-    ncf = lid(ibset(0_8, no - nor) + 1)
+    ncf = lid(kibset(0_8, no - nor) + 1)
 end subroutine
 
 recursive subroutine count_cfs_rec(no, nom, nqnu, qnu_1, qnu_o, modul, ct)
@@ -61,22 +61,22 @@ subroutine generate_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, rid, conf)
     implicit none
     integer(8), intent(in) :: no, nor, nqnu, ncf
     integer(8), intent(in) :: qnu_s(nqnu), qnu_o(no, nqnu), modul(nqnu)
-    integer(8), intent(in) :: lid(ibset(0_8, no - nor) + 1)
-    integer(8), intent(out) :: conf(ncf), rid(ibset(0_8, nor))
+    integer(8), intent(in) :: lid(kibset(0_8, no - nor) + 1)
+    integer(8), intent(out) :: conf(ncf), rid(kibset(0_8, nor))
     integer(8) :: qnu_1(nqnu), i, j, ct
 
     rid = 0
     !$omp parallel shared(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, rid, conf) private(qnu_1, i, j, ct)
     !$omp do
-    do i = 0, ibset(0_8, no - nor) - 1
+    do i = 0, kibset(0_8, no - nor) - 1
         if (lid(i + 1) == lid(i + 2)) cycle 
         qnu_1 = qnu_s
         do j = nor + 1, no
-            if (ibits(i, j - nor - 1, 1_8) == 0) cycle
+            if (kibits(i, j - nor - 1, 1_8) == 0) cycle
             qnu_1 = qnu_1 - qnu_o(j, :)
         end do
         ct = lid(i + 1)
-        call generate_cfs_rec(no, nor, nor, nqnu, qnu_1, qnu_o, modul, ncf, ct, ishft(i, nor), lid, rid, conf)
+        call generate_cfs_rec(no, nor, nor, nqnu, qnu_1, qnu_o, modul, ncf, ct, kishft(i, nor), lid, rid, conf)
     end do
     !$omp end do
     !$omp end parallel
@@ -86,8 +86,8 @@ recursive subroutine generate_cfs_rec(no, nor, nom, nqnu, qnu_1, qnu_o, modul, n
     implicit none
     integer(8), intent(in) :: no, nor, nom, nqnu, tmp, ncf
     integer(8), intent(in) :: qnu_1(nqnu), qnu_o(no, nqnu), modul(nqnu)
-    integer(8), intent(in) :: lid(ibset(0_8, no - nor) + 1)
-    integer(8), intent(inout) :: ct, conf(ncf), rid(ibset(0_8, nor))
+    integer(8), intent(in) :: lid(kibset(0_8, no - nor) + 1)
+    integer(8), intent(inout) :: ct, conf(ncf), rid(kibset(0_8, nor))
     logical :: flag
     integer(8) :: i, nom1, li, ri, cyc1
 
@@ -102,25 +102,24 @@ recursive subroutine generate_cfs_rec(no, nor, nom, nqnu, qnu_1, qnu_o, modul, n
     if (flag) then 
         ct = ct + 1 
         conf(ct) = tmp 
-        ri = ibits(tmp, 0_8, nor)
+        ri = kibits(tmp, 0_8, nor)
         if (rid(ri + 1) > 0) return
-        li = ibits(tmp, nor, no - nor)
+        li = kibits(tmp, nor, no - nor)
         rid(ri + 1) = ct - lid(li + 1)
         return
     end if
     do nom1 = 1, nom
-        call generate_cfs_rec(no, nor, nom1 - 1, nqnu, qnu_1 - qnu_o(nom1, :), qnu_o, &
-            modul, ncf, ct, ibset(tmp, nom1 - 1), lid, rid, conf)
+        call generate_cfs_rec(no, nor, nom1 - 1, nqnu, qnu_1 - qnu_o(nom1, :), qnu_o, modul, ncf, ct, kibset(tmp, nom1 - 1), lid, rid, conf)
     end do
 end subroutine
 
 function search_conf(no, nor, lid, rid, cf) result(i)
     implicit none
     integer(8), intent(in) :: no, nor
-    integer(8), intent(in) :: lid(ibset(0_8, no - nor) + 1), rid(ibset(0_8, nor))
+    integer(8), intent(in) :: lid(kibset(0_8, no - nor) + 1), rid(kibset(0_8, nor))
     integer(8), intent(in) :: cf
     integer(8):: i
-    i = lid(ibits(cf, nor, no - nor) + 1) + rid(ibits(cf, 0_8, nor) + 1)
+    i = lid(kibits(cf, nor, no - nor) + 1) + rid(kibits(cf, 0_8, nor) + 1)
 end function
 
 end module

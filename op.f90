@@ -17,16 +17,16 @@ function hopping(cfd, cff, no, nc, cstr_tm) result(phase)
     do i = nc * 2 - 1, 1, -2 
         if (cstr_tm(i) == -1) cycle
         o = cstr_tm(i + 1) - 1
-        if (cstr_tm(i) == ibits(cfi, o, 1_8)) then 
+        if (cstr_tm(i) == kibits(cfi, o, 1_8)) then 
             phase = 0
             return
         end if
-        cfi = ieor(cfi, ibset(0_8, o))
-        cfp = ieor(cfp, ibits(cfi, 0_8, o))
+        cfi = kieor(cfi, kibset(0_8, o))
+        cfp = kieor(cfp, kibits(cfi, 0_8, o))
     end do 
     cff = cfi
     do i = 0, no - 1
-        if (ibits(cfp, i, 1_8) == 1) phase = -phase
+        if (kibits(cfp, i, 1_8) == 1) phase = -phase
     end do
 end function
 
@@ -39,12 +39,12 @@ subroutine count_op(no, nor, &
     integer(8), intent(in) :: no, nor 
 
     integer(8), intent(in) :: ncf_d, dim_d, szz_d
-    integer(8), intent(in) :: conf_d(ncf_d), lid_d(ibset(0_8, no - nor) + 1), rid_d(ibset(0_8, nor))
+    integer(8), intent(in) :: conf_d(ncf_d), lid_d(kibset(0_8, no - nor) + 1), rid_d(kibset(0_8, nor))
     integer(8), intent(in) :: cfgr_d(ncf_d), grel_d(szz_d, dim_d), grsz_d(dim_d)
     complex(8), intent(in) :: cffac_d(ncf_d)
 
     integer(8), intent(in) :: ncf_f, dim_f, szz_f
-    integer(8), intent(in) :: conf_f(ncf_f), lid_f(ibset(0_8, no - nor) + 1), rid_f(ibset(0_8, nor))
+    integer(8), intent(in) :: conf_f(ncf_f), lid_f(kibset(0_8, no - nor) + 1), rid_f(kibset(0_8, nor))
     integer(8), intent(in) :: cfgr_f(ncf_f), grel_f(szz_f, dim_f), grsz_f(dim_f)
     complex(8), intent(in) :: cffac_f(ncf_f)
 
@@ -58,9 +58,7 @@ subroutine count_op(no, nor, &
     integer(8), allocatable :: last_el(:)
 
     colptr(1) = 1
-    !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f), &
-    !$omp& shared(conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel), &
-    !$omp& shared(colptr) private(g, g1, e, em, i, i1, cf, cf1, index, index_last, last_el, last_id, phase, t)
+    !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f, conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel, colptr) private(g, g1, e, em, i, i1, cf, cf1, index, index_last, last_el, last_id, phase, t)
     allocate(last_el(dim_f))
     index = 0
     last_el = 0
@@ -116,12 +114,12 @@ subroutine generate_op(no, nor, &
     integer(8), intent(in) :: no, nor 
 
     integer(8), intent(in) :: ncf_d, dim_d, szz_d
-    integer(8), intent(in) :: conf_d(ncf_d), lid_d(ibset(0_8, no - nor)), rid_d(ibset(0_8, nor))
+    integer(8), intent(in) :: conf_d(ncf_d), lid_d(kibset(0_8, no - nor)), rid_d(kibset(0_8, nor))
     integer(8), intent(in) :: cfgr_d(ncf_d), grel_d(szz_d, dim_d), grsz_d(dim_d)
     complex(8), intent(in) :: cffac_d(ncf_d)
 
     integer(8), intent(in) :: ncf_f, dim_f, szz_f
-    integer(8), intent(in) :: conf_f(ncf_f), lid_f(ibset(0_8, no - nor) + 1), rid_f(ibset(0_8, nor))
+    integer(8), intent(in) :: conf_f(ncf_f), lid_f(kibset(0_8, no - nor) + 1), rid_f(kibset(0_8, nor))
     integer(8), intent(in) :: cfgr_f(ncf_f), grel_f(szz_f, dim_f), grsz_f(dim_f)
     complex(8), intent(in) :: cffac_f(ncf_f)
 
@@ -137,10 +135,7 @@ subroutine generate_op(no, nor, &
     integer(8), allocatable :: last_el(:)
     complex(8) :: val, fac, fac1
 
-    !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f), &
-    !$omp& shared(conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel), &
-    !$omp& shared(colptr, rowid, elval) private(g, g1, e, em, i, i1, cf, cf1, index, last_el, last_id, phase, mult, val, fac), &
-    !$omp& private(fac1, t)
+    !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f, conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel, colptr, rowid, elval) private(g, g1, e, em, i, i1, cf, cf1, index, last_el, last_id, phase, mult, val, fac, fac1, t)
     allocate(last_el(dim_f))
     last_el = 0
     !$omp do
@@ -199,12 +194,12 @@ subroutine generate_op_re(no, nor, &
     integer(8), intent(in) :: no, nor 
 
     integer(8), intent(in) :: ncf_d, dim_d, szz_d
-    integer(8), intent(in) :: conf_d(ncf_d), lid_d(ibset(0_8, no - nor)), rid_d(ibset(0_8, nor))
+    integer(8), intent(in) :: conf_d(ncf_d), lid_d(kibset(0_8, no - nor)), rid_d(kibset(0_8, nor))
     integer(8), intent(in) :: cfgr_d(ncf_d), grel_d(szz_d, dim_d), grsz_d(dim_d)
     complex(8), intent(in) :: cffac_d(ncf_d)
 
     integer(8), intent(in) :: ncf_f, dim_f, szz_f
-    integer(8), intent(in) :: conf_f(ncf_f), lid_f(ibset(0_8, no - nor) + 1), rid_f(ibset(0_8, nor))
+    integer(8), intent(in) :: conf_f(ncf_f), lid_f(kibset(0_8, no - nor) + 1), rid_f(kibset(0_8, nor))
     integer(8), intent(in) :: cfgr_f(ncf_f), grel_f(szz_f, dim_f), grsz_f(dim_f)
     complex(8), intent(in) :: cffac_f(ncf_f)
 
@@ -220,10 +215,7 @@ subroutine generate_op_re(no, nor, &
     integer(8), allocatable :: last_el(:)
     complex(8) :: val, fac, fac1
 
-    !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f), &
-    !$omp& shared(conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel), &
-    !$omp& shared(colptr, rowid, elval) private(g, g1, e, em, i, i1, cf, cf1, index, last_el, last_id, phase, mult, val), &
-    !$omp& private(fac, fac1, t)
+    !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f, conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel, colptr, rowid, elval) private(g, g1, e, em, i, i1, cf, cf1, index, last_el, last_id, phase, mult, val, fac, fac1, t)
     allocate(last_el(dim_f))
     last_el = 0
     !$omp do
@@ -282,12 +274,12 @@ subroutine action_op(no, nor, &
     integer(8), intent(in) :: no, nor 
 
     integer(8), intent(in) :: ncf_d, dim_d, szz_d
-    integer(8), intent(in) :: conf_d(ncf_d), lid_d(ibset(0_8, no - nor)), rid_d(ibset(0_8, nor))
+    integer(8), intent(in) :: conf_d(ncf_d), lid_d(kibset(0_8, no - nor)), rid_d(kibset(0_8, nor))
     integer(8), intent(in) :: cfgr_d(ncf_d), grel_d(szz_d, dim_d), grsz_d(dim_d)
     complex(8), intent(in) :: cffac_d(ncf_d)
 
     integer(8), intent(in) :: ncf_f, dim_f, szz_f
-    integer(8), intent(in) :: conf_f(ncf_f), lid_f(ibset(0_8, no - nor) + 1), rid_f(ibset(0_8, nor))
+    integer(8), intent(in) :: conf_f(ncf_f), lid_f(kibset(0_8, no - nor) + 1), rid_f(kibset(0_8, nor))
     integer(8), intent(in) :: cfgr_f(ncf_f), grel_f(szz_f, dim_f), grsz_f(dim_f)
     complex(8), intent(in) :: cffac_f(ncf_f)
 
@@ -304,9 +296,7 @@ subroutine action_op(no, nor, &
     complex(8) :: val, fac, fac1
 
     st_f = 0
-    !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f), &
-    !$omp& shared(conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, st_d, st_f) &
-    !$omp& private(g, g1, e, em, i, i1, cf, cf1, phase, val, fac, fac1, t, st_f1, mult)
+    !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f, conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, st_d, st_f) private(g, g1, e, em, i, i1, cf, cf1, phase, val, fac, fac1, t, st_f1, mult)
     allocate(st_f1(dim_f))
     st_f1 = 0
     !$omp do
@@ -358,12 +348,12 @@ subroutine overlap_op(no, nor, &
     integer(8), intent(in) :: no, nor 
 
     integer(8), intent(in) :: ncf_d, dim_d, szz_d
-    integer(8), intent(in) :: conf_d(ncf_d), lid_d(ibset(0_8, no - nor)), rid_d(ibset(0_8, nor))
+    integer(8), intent(in) :: conf_d(ncf_d), lid_d(kibset(0_8, no - nor)), rid_d(kibset(0_8, nor))
     integer(8), intent(in) :: cfgr_d(ncf_d), grel_d(szz_d, dim_d), grsz_d(dim_d)
     complex(8), intent(in) :: cffac_d(ncf_d)
 
     integer(8), intent(in) :: ncf_f, dim_f, szz_f
-    integer(8), intent(in) :: conf_f(ncf_f), lid_f(ibset(0_8, no - nor) + 1), rid_f(ibset(0_8, nor))
+    integer(8), intent(in) :: conf_f(ncf_f), lid_f(kibset(0_8, no - nor) + 1), rid_f(kibset(0_8, nor))
     integer(8), intent(in) :: cfgr_f(ncf_f), grel_f(szz_f, dim_f), grsz_f(dim_f)
     complex(8), intent(in) :: cffac_f(ncf_f)
 
@@ -380,9 +370,7 @@ subroutine overlap_op(no, nor, &
     complex(8) :: val, fac, fac1
 
     prod = 0
-    !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f), &
-    !$omp& shared(conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, st_d, st_f), &
-    !$omp& shared(prod) private(g, g1, e, em, i, i1, cf, cf1, phase, val, fac, fac1, t, prod1, mult)
+    !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f, conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, st_d, st_f, prod) private(g, g1, e, em, i, i1, cf, cf1, phase, val, fac, fac1, t, prod1, mult)
     prod1 = 0
     !$omp do
     do g = 1, dim_d
