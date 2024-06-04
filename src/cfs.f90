@@ -5,6 +5,7 @@ module cfs
 contains
 
 subroutine count_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid)
+    use omp_lib
     implicit none
     integer(8), intent(in) :: no, nor, nqnu
     integer(8), intent(in) :: qnu_s(nqnu), qnu_o(no, nqnu), modul(nqnu)
@@ -12,9 +13,14 @@ subroutine count_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid)
     integer(8), intent(out) :: ncf
     integer(8) :: qnu_1(nqnu), i, j
 
+    print *, 'Counting configurations start'
     !$omp parallel shared(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid) private(qnu_1, i, j)
     !$omp do
     do i = 0, ibset(0_8, no - nor) - 1
+        if (mod(i + 1, 10000) == 0) then 
+            if (omp_get_thread_num() == 0) print *, 'Counting configurations', &
+                i + 1, '*', omp_get_max_threads(), '/', ibset(0_8, no - nor)
+        end if 
         qnu_1 = qnu_s
         do j = nor + 1, no
             if (ibits(i, j - nor - 1, 1_8) == 0) cycle
@@ -30,6 +36,7 @@ subroutine count_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid)
         lid(i + 1) = lid(i + 1) + lid(i)
     end do
     ncf = lid(ibset(0_8, no - nor) + 1)
+    print *, 'Counting configurations finish, total number :', ncf
 end subroutine
 
 recursive subroutine count_cfs_rec(no, nom, nqnu, qnu_1, qnu_o, modul, ct)
@@ -58,6 +65,7 @@ recursive subroutine count_cfs_rec(no, nom, nqnu, qnu_1, qnu_o, modul, ct)
 end subroutine
 
 subroutine generate_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, rid, conf)
+    use omp_lib
     implicit none
     integer(8), intent(in) :: no, nor, nqnu, ncf
     integer(8), intent(in) :: qnu_s(nqnu), qnu_o(no, nqnu), modul(nqnu)
@@ -65,10 +73,15 @@ subroutine generate_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, rid, conf)
     integer(8), intent(out) :: conf(ncf), rid(ibset(0_8, nor))
     integer(8) :: qnu_1(nqnu), i, j, ct
 
+    print *, 'Generating configurations start'
     rid = 0
     !$omp parallel shared(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, rid, conf) private(qnu_1, i, j, ct)
     !$omp do
     do i = 0, ibset(0_8, no - nor) - 1
+        if (mod(i + 1, 10000) == 0) then 
+            if (omp_get_thread_num() == 0) print *, 'Generating configurations', &
+                i + 1, '*', omp_get_max_threads(), '/', ibset(0_8, no - nor)
+        end if 
         if (lid(i + 1) == lid(i + 2)) cycle 
         qnu_1 = qnu_s
         do j = nor + 1, no
@@ -80,6 +93,7 @@ subroutine generate_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, rid, conf)
     end do
     !$omp end do
     !$omp end parallel
+    print *, 'Generating configurations finish'
 end subroutine
 
 recursive subroutine generate_cfs_rec(no, nor, nom, nqnu, qnu_1, qnu_o, modul, ncf, ct, tmp, lid, rid, conf)

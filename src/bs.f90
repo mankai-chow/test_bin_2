@@ -68,10 +68,12 @@ subroutine generate_bs_cfgr(no, nor, ncf, lid, rid, conf, nqnz, qnz_s, cyc, perm
     allocate(transf(ncf, nqnz))
     allocate(phase(ncf, nqnz))
 
+    print *, 'Generating transformations'
     do j = 1, nqnz
         if (abs(qnz_s(j)) < 1.d-6) cycle
         call generate_trs(no, nor, ncf, lid, rid, conf, perm_o(:, j), ph_o(:, j), fac_o(:, j), transf(:, j), phase(:, j))
     end do
+    print *, 'Generating basis cfgr'
     dim = 0
     cfgr = -1
     do i = 1, ncf
@@ -108,6 +110,7 @@ subroutine generate_bs_grel(ncf, szz, dim, cfgr, grel, grsz)
     integer(8), intent(out) :: grel(szz, dim), grsz(dim)
     integer(8) :: i, g
 
+    print *, 'Generating basis grel'
     grel = -1 
     grsz = 0 
     do i = 1, ncf 
@@ -116,6 +119,7 @@ subroutine generate_bs_grel(ncf, szz, dim, cfgr, grel, grsz)
         grsz(g) = grsz(g) + 1
         grel(grsz(g), g) = i
     end do
+    print *, 'Generating basis finish'
 end subroutine
 
 end module

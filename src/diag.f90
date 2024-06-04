@@ -114,11 +114,11 @@ subroutine diagonalisation(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_
         ldv, iparam, ipntr, workd, workl, lworkl, rwork, info)
     nit = 0
     do while (ido == 1 .or. ido == -1)
-        if (mod(nit, 1) == 0) print *, 'Diagonisation, iteration : ', nit
         call vec_prod(dim, dim, sym_q, nel, colptr, rowid, elval, workd(ipntr(1)),  workd(ipntr(2)))
         call znaupd(ido, bmat, n, which, nev, tol, resid, ncv, v, &
             ldv, iparam, ipntr, workd, workl, lworkl, rwork, info)
         nit = nit + 1
+        if (mod(nit, 100) == 0) print *, 'Diagonisation, iteration : ', nit
     end do
     if (info < 0 .or. ido /= 99) print *, 'Errors in znaupd, info =', info
 

@@ -108,16 +108,16 @@ subroutine diagonalisation_re(dim, sym_q, nel, colptr, rowid, elval, nst, tol, n
     allocate(rwork(ncv))
     info = 0
 
-    print *, 'Diagonisation begins.'
+    print *, 'Diagonisation start'
     call dnaupd(ido, bmat, n, which, nev, tol, resid, ncv, v, &
         ldv, iparam, ipntr, workd, workl, lworkl, info)
     nit = 0
     do while (ido == 1 .or. ido == -1)
-        if (mod(nit, 1) == 0) print *, 'Diagonisation, iteration : ', nit
         call vec_prod_re(dim, dim, sym_q, nel, colptr, rowid, elval, workd(ipntr(1)), workd(ipntr(2)))
         call dnaupd(ido, bmat, n, which, nev, tol, resid, ncv, v, &
             ldv, iparam, ipntr, workd, workl, lworkl, info)
         nit = nit + 1
+        if (mod(nit, 100) == 0) print *, 'Diagonisation, iteration : ', nit
     end do
     if (info < 0 .or. ido /= 99) print *, 'Errors in dnaupd, info =', info
 
@@ -130,7 +130,7 @@ subroutine diagonalisation_re(dim, sym_q, nel, colptr, rowid, elval, nst, tol, n
     call dneupd(rvec, howmny, select, eigval, eigval_im, eigvec, ldz, sigmar, sigmai, workev, bmat, n, which, nev, &
         tol, resid, ncv, v, ldv, iparam, ipntr, workd, workl, lworkl, info)
 
-    if (info == 0) print *, 'Diagonisation successful, total iteration : ', nit
+    if (info == 0) print *, 'Diagonisation finish, total iteration : ', nit
 
     deallocate(resid)
     deallocate(v)

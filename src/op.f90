@@ -57,6 +57,7 @@ subroutine count_op(no, nor, &
     integer(8) :: index, index_last, last_id, phase
     integer(8), allocatable :: last_el(:)
 
+    print *, 'Counting operator start'
     colptr(1) = 1
     !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f), &
     !$omp& shared(conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel), &
@@ -67,7 +68,7 @@ subroutine count_op(no, nor, &
     !$omp do
     do g = 1, dim_d
         if (mod(g, 10000) == 0) then 
-            if (omp_get_thread_num() == 0) print *, 'Counting Hamiltonian column', g, '*', omp_get_max_threads()
+            if (omp_get_thread_num() == 0) print *, 'Counting operator, column', g, '*', omp_get_max_threads(), '/', dim_d
         end if 
         index_last = index 
         
@@ -105,6 +106,7 @@ subroutine count_op(no, nor, &
         colptr(g + 1) = colptr(g + 1) + colptr(g)
     end do 
     nel = colptr(dim_d + 1) - 1
+    print *, 'Counting operator finish, element count :', nel
 end subroutine
 
 subroutine generate_op(no, nor, &
@@ -137,6 +139,7 @@ subroutine generate_op(no, nor, &
     integer(8), allocatable :: last_el(:)
     complex(8) :: val, fac, fac1
 
+    print *, 'Generating operator start'
     !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f), &
     !$omp& shared(conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel), &
     !$omp& shared(colptr, rowid, elval) private(g, g1, e, em, i, i1, cf, cf1, index, last_el, last_id, phase, mult, val, fac), &
@@ -146,7 +149,7 @@ subroutine generate_op(no, nor, &
     !$omp do
     do g = 1, dim_d
         if (mod(g, 10000) == 0) then 
-            if (omp_get_thread_num() == 0) print *, 'Generating Hamiltonian column', g, '*', omp_get_max_threads()
+            if (omp_get_thread_num() == 0) print *, 'Generating operator column', g, '*', omp_get_max_threads(), '/', dim_d
         end if 
         index = colptr(g) - 1
         mult = grsz_d(g)
@@ -188,6 +191,7 @@ subroutine generate_op(no, nor, &
     !$omp end do 
     deallocate(last_el)
     !$omp end parallel
+    print *, 'Generating operator finish'
 end subroutine
 
 subroutine generate_op_re(no, nor, &
@@ -229,7 +233,7 @@ subroutine generate_op_re(no, nor, &
     !$omp do
     do g = 1, dim_d
         if (mod(g, 10000) == 0) then 
-            if (omp_get_thread_num() == 0) print *, 'Generating Hamiltonian column', g, '*', omp_get_max_threads()
+            if (omp_get_thread_num() == 0) print *, 'Generating operator column', g, '*', omp_get_max_threads(), '/', dim_d
         end if 
         index = colptr(g) - 1
         mult = grsz_d(g)
@@ -312,7 +316,7 @@ subroutine action_op(no, nor, &
     !$omp do
     do g = 1, dim_d
         if (mod(g, 10000) == 0) then 
-            if (omp_get_thread_num() == 0) print *, 'Generating Hamiltonian column', g, '*', omp_get_max_threads()
+            if (omp_get_thread_num() == 0) print *, 'Generating operator column', g, '*', omp_get_max_threads(), '/', dim_d
         end if 
         mult = grsz_d(g)
         em = 1
@@ -387,7 +391,7 @@ subroutine overlap_op(no, nor, &
     !$omp do
     do g = 1, dim_d
         if (mod(g, 10000) == 0) then 
-            if (omp_get_thread_num() == 0) print *, 'Generating Hamiltonian column', g, '*', omp_get_max_threads()
+            if (omp_get_thread_num() == 0) print *, 'Generating operator column', g, '*', omp_get_max_threads()
         end if 
         mult = grsz_d(g)
         em = 1
