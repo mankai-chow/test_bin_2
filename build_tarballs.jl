@@ -1,9 +1,10 @@
+# julia build_tarballs.jl --debug --verbose --deploy="mankai-chow/FuzzifiED_jll.jl"
 # Note that this script can accept some limited command-line arguments, run
 # `julia build_tarballs.jl --help` to see a usage message.
 using BinaryBuilder, Pkg
 
 name = "FuzzifiED"
-version = v"0.5.10"
+version = v"0.6.1"
 
 # Collection of sources required to complete build
 sources = [
@@ -19,6 +20,7 @@ if [[ ${nbits} == 32 ]]; then
     gfortran -fPIC -larpack -fopenmp -L ${libdir} -c ./op.f90
     gfortran -fPIC -larpack -fopenmp -L ${libdir} -c ./diag.f90
     gfortran -fPIC -larpack -fopenmp -L ${libdir} -c ./diag_re.f90
+    gfortran -fPIC -larpack -fopenmp -L ${libdir} -c ./ent.f90
     gfortran -fPIC -shared -larpack -fopenmp -L ${libdir} -o ${libdir}/libfuzzified.$dlext ./*.o
 else 
     gfortran -fPIC -fdefault-integer-8 -larpack -fopenmp -L ${libdir} -c ./cfs.f90
@@ -26,6 +28,7 @@ else
     gfortran -fPIC -fdefault-integer-8 -larpack -fopenmp -L ${libdir} -c ./op.f90
     gfortran -fPIC -fdefault-integer-8 -larpack -fopenmp -L ${libdir} -c ./diag.f90
     gfortran -fPIC -fdefault-integer-8 -larpack -fopenmp -L ${libdir} -c ./diag_re.f90
+    gfortran -fPIC -fdefault-integer-8 -larpack -fopenmp -L ${libdir} -c ./ent.f90
     gfortran -fPIC -fdefault-integer-8 -shared -larpack -fopenmp -L ${libdir} -o ${libdir}/libfuzzified.$dlext ./*.o
 fi
 """
