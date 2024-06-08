@@ -2,7 +2,7 @@ module diag
 
 contains 
 
-subroutine vec_prod(dim_d, dim_f, sym_q, nel, colptr, rowid, elval, st_d, st_f)
+subroutine vec_prod(dim_d, dim_f, sym_q, nel, colptr, rowid, elval, st_d, st_f, num_th)
     use omp_lib 
     implicit none 
     integer(8), intent(in) :: dim_d, dim_f, sym_q, nel
@@ -12,7 +12,9 @@ subroutine vec_prod(dim_d, dim_f, sym_q, nel, colptr, rowid, elval, st_d, st_f)
     complex(8) :: val
     complex(8), allocatable :: st_f1(:)
     integer(8) :: i, j, i1
+    integer(8), intent(in) :: num_th 
 
+    call omp_set_num_threads(num_th)
     st_f = 0
     !$omp parallel shared(dim_d, dim_f, sym_q, nel, colptr, rowid, elval, st_d, st_f) private(st_f1, i, j, i1, val)
     allocate(st_f1(dim_d))
@@ -36,7 +38,7 @@ subroutine vec_prod(dim_d, dim_f, sym_q, nel, colptr, rowid, elval, st_d, st_f)
     !$omp end parallel
 end subroutine
 
-subroutine scal_prod(dim_d, dim_f, sym_q, nel, colptr, rowid, elval, st_d, st_f, prod)
+subroutine scal_prod(dim_d, dim_f, sym_q, nel, colptr, rowid, elval, st_d, st_f, prod, num_th)
     use omp_lib 
     implicit none 
     integer(8), intent(in) :: dim_d, dim_f, sym_q, nel
@@ -45,7 +47,9 @@ subroutine scal_prod(dim_d, dim_f, sym_q, nel, colptr, rowid, elval, st_d, st_f,
     complex(8), intent(out) :: prod
     complex(8) :: prod1, val
     integer(8) :: i, j, i1
+    integer(8), intent(in) :: num_th 
 
+    call omp_set_num_threads(num_th)
     prod = 0
     !$omp parallel shared(dim_d, dim_f, sym_q, nel, colptr, rowid, elval, st_d, st_f, prod) private(prod1, i, j, i1, val)
     prod1 = 0 
@@ -67,13 +71,15 @@ subroutine scal_prod(dim_d, dim_f, sym_q, nel, colptr, rowid, elval, st_d, st_f,
     !$omp end parallel
 end subroutine
 
-subroutine diagonalisation(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_in, eigval, eigvec)
+subroutine diagonalisation(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_in, eigval, eigvec, num_th, silence_std)
     implicit none
     integer(8), intent(in) :: dim, sym_q, nel, nst, ncv_in
     integer(8), intent(in) :: colptr(dim + 1), rowid(nel)
     complex(8), intent(in) :: elval(nel)
     real(8), intent(in) :: tol
     complex(8), intent(out) :: eigval(nst + 1), eigvec(dim, nst + 1)
+    integer(8), intent(in) :: num_th 
+    logical, intent(in) :: silence_std
 
     integer :: nit
 
@@ -109,16 +115,16 @@ subroutine diagonalisation(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_
     allocate(rwork(ncv))
     info = 0
 
-    print *, 'Diagonisation begins.'
+    if (.not. silence_std) print *, 'Diagonisation begins.'
     call znaupd(ido, bmat, n, which, nev, tol, resid, ncv, v, &
         ldv, iparam, ipntr, workd, workl, lworkl, rwork, info)
     nit = 0
     do while (ido == 1 .or. ido == -1)
-        call vec_prod(dim, dim, sym_q, nel, colptr, rowid, elval, workd(ipntr(1)),  workd(ipntr(2)))
+        call vec_prod(dim, dim, sym_q, nel, colptr, rowid, elval, workd(ipntr(1)),  workd(ipntr(2)), num_th)
         call znaupd(ido, bmat, n, which, nev, tol, resid, ncv, v, &
             ldv, iparam, ipntr, workd, workl, lworkl, rwork, info)
         nit = nit + 1
-        if (mod(nit, 100) == 0) print *, 'Diagonisation, iteration : ', nit
+        if (mod(nit, 100) == 0 .and. .not. silence_std) print *, 'Diagonisation, iteration : ', nit
     end do
     if (info < 0 .or. ido /= 99) print *, 'Errors in znaupd, info =', info
 
@@ -131,7 +137,7 @@ subroutine diagonalisation(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_
     call zneupd(rvec, howmny, select, eigval, eigvec, ldz, sigma, workev, bmat, n, which, nev, &
         tol, resid, ncv, v, ldv, iparam, ipntr, workd, workl, lworkl, rwork, info)
 
-    if (info == 0) print *, 'Diagonisation successful, total iteration : ', nit
+    if (info == 0 .and. .not. silence_std) print *, 'Diagonisation successful, total iteration : ', nit
 
     deallocate(resid)
     deallocate(v)

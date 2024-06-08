@@ -33,7 +33,7 @@ end function
 subroutine count_op(no, nor, &
     ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, &
     ncf_f, dim_f, conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, &
-    ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel, colptr)
+    ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel, colptr, num_th, silence_std)
     use omp_lib
     implicit none
     integer(8), intent(in) :: no, nor 
@@ -57,7 +57,11 @@ subroutine count_op(no, nor, &
     integer(8) :: index, index_last, last_id, phase
     integer(8), allocatable :: last_el(:)
 
-    print *, 'Counting operator start'
+    integer(8), intent(in) :: num_th 
+    logical, intent(in) :: silence_std
+
+    call omp_set_num_threads(num_th)
+    if (.not. silence_std) print *, 'Counting operator start'
     colptr(1) = 1
     !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f), &
     !$omp& shared(conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel), &
@@ -67,7 +71,7 @@ subroutine count_op(no, nor, &
     last_el = 0
     !$omp do
     do g = 1, dim_d
-        if (mod(g, 10000) == 0) then 
+        if (mod(g, 10000) == 0 .and. .not. silence_std) then 
             if (omp_get_thread_num() == 0) print *, 'Counting operator, column', g, '*', omp_get_max_threads(), '/', dim_d
         end if 
         index_last = index 
@@ -106,13 +110,13 @@ subroutine count_op(no, nor, &
         colptr(g + 1) = colptr(g + 1) + colptr(g)
     end do 
     nel = colptr(dim_d + 1) - 1
-    print *, 'Counting operator finish, element count :', nel
+    if (.not. silence_std) print *, 'Counting operator finish, element count :', nel
 end subroutine
 
 subroutine generate_op(no, nor, &
     ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, &
     ncf_f, dim_f, conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, &
-    ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel, colptr, rowid, elval)
+    ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel, colptr, rowid, elval, num_th, silence_std)
     use omp_lib
     implicit none
     integer(8), intent(in) :: no, nor 
@@ -134,12 +138,16 @@ subroutine generate_op(no, nor, &
     integer(8), intent(out) :: rowid(nel)
     complex(8), intent(out) :: elval(nel)
 
+    integer(8), intent(in) :: num_th 
+    logical, intent(in) :: silence_std
+
     integer(8) :: e, em, g, g1, i, i1, cf, cf1, t
     integer(8) :: index, last_id, phase, mult
     integer(8), allocatable :: last_el(:)
     complex(8) :: val, fac, fac1
 
-    print *, 'Generating operator start'
+    call omp_set_num_threads(num_th)
+    if (.not. silence_std) print *, 'Generating operator start'
     !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f), &
     !$omp& shared(conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel), &
     !$omp& shared(colptr, rowid, elval) private(g, g1, e, em, i, i1, cf, cf1, index, last_el, last_id, phase, mult, val, fac), &
@@ -148,7 +156,7 @@ subroutine generate_op(no, nor, &
     last_el = 0
     !$omp do
     do g = 1, dim_d
-        if (mod(g, 10000) == 0) then 
+        if (mod(g, 10000) == 0 .and. .not. silence_std) then 
             if (omp_get_thread_num() == 0) print *, 'Generating operator column', g, '*', omp_get_max_threads(), '/', dim_d
         end if 
         index = colptr(g) - 1
@@ -191,13 +199,13 @@ subroutine generate_op(no, nor, &
     !$omp end do 
     deallocate(last_el)
     !$omp end parallel
-    print *, 'Generating operator finish'
+    if (.not. silence_std) print *, 'Generating operator finish'
 end subroutine
 
 subroutine generate_op_re(no, nor, &
     ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, &
     ncf_f, dim_f, conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, &
-    ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel, colptr, rowid, elval)
+    ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel, colptr, rowid, elval, num_th, silence_std)
     use omp_lib
     implicit none
     integer(8), intent(in) :: no, nor 
@@ -219,11 +227,16 @@ subroutine generate_op_re(no, nor, &
     integer(8), intent(out) :: rowid(nel)
     real(8), intent(out) :: elval(nel)
 
+    integer(8), intent(in) :: num_th 
+    logical, intent(in) :: silence_std
+
     integer(8) :: e, em, g, g1, i, i1, cf, cf1, t
     integer(8) :: index, last_id, phase, mult
     integer(8), allocatable :: last_el(:)
     complex(8) :: val, fac, fac1
 
+    call omp_set_num_threads(num_th)
+    if (.not. silence_std) print *, 'Generating operator start'
     !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f), &
     !$omp& shared(conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel), &
     !$omp& shared(colptr, rowid, elval) private(g, g1, e, em, i, i1, cf, cf1, index, last_el, last_id, phase, mult, val), &
@@ -232,7 +245,7 @@ subroutine generate_op_re(no, nor, &
     last_el = 0
     !$omp do
     do g = 1, dim_d
-        if (mod(g, 10000) == 0) then 
+        if (mod(g, 10000) == 0 .and. .not. silence_std) then 
             if (omp_get_thread_num() == 0) print *, 'Generating operator column', g, '*', omp_get_max_threads(), '/', dim_d
         end if 
         index = colptr(g) - 1
@@ -275,12 +288,13 @@ subroutine generate_op_re(no, nor, &
     !$omp end do 
     deallocate(last_el)
     !$omp end parallel
+    if (.not. silence_std) print *, 'Generating operator finish'
 end subroutine
 
 subroutine action_op(no, nor, &
     ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, &
     ncf_f, dim_f, conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, &
-    ntm, nc, cstr_tms, fac_tms, red_q, st_d, st_f)
+    ntm, nc, cstr_tms, fac_tms, red_q, st_d, st_f, num_th, silence_std)
     use omp_lib
     implicit none
     integer(8), intent(in) :: no, nor 
@@ -303,11 +317,16 @@ subroutine action_op(no, nor, &
     complex(8), intent(out) :: st_f(dim_f)
     complex(8), allocatable :: st_f1(:)
 
+    integer(8), intent(in) :: num_th 
+    logical, intent(in) :: silence_std
+
     integer(8) :: e, em, g, g1, i, i1, cf, cf1, t
     integer(8) :: phase, mult
     complex(8) :: val, fac, fac1
 
+    call omp_set_num_threads(num_th)
     st_f = 0
+    if (.not. silence_std) print *, 'Generating operator start'
     !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f), &
     !$omp& shared(conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, st_d, st_f) &
     !$omp& private(g, g1, e, em, i, i1, cf, cf1, phase, val, fac, fac1, t, st_f1, mult)
@@ -315,7 +334,7 @@ subroutine action_op(no, nor, &
     st_f1 = 0
     !$omp do
     do g = 1, dim_d
-        if (mod(g, 10000) == 0) then 
+        if (mod(g, 10000) == 0 .and. .not. silence_std) then 
             if (omp_get_thread_num() == 0) print *, 'Generating operator column', g, '*', omp_get_max_threads(), '/', dim_d
         end if 
         mult = grsz_d(g)
@@ -351,12 +370,13 @@ subroutine action_op(no, nor, &
     !$omp end critical
     deallocate(st_f1)
     !$omp end parallel
+    if (.not. silence_std) print *, 'Generating operator finish'
 end subroutine
 
 subroutine overlap_op(no, nor, &
     ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, &
     ncf_f, dim_f, conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, &
-    ntm, nc, cstr_tms, fac_tms, red_q, st_d, st_f, prod)
+    ntm, nc, cstr_tms, fac_tms, red_q, st_d, st_f, prod, num_th, silence_std)
     use omp_lib
     implicit none
     integer(8), intent(in) :: no, nor 
@@ -379,18 +399,23 @@ subroutine overlap_op(no, nor, &
     complex(8), intent(out) :: prod
     complex(8) :: prod1
 
+    integer(8), intent(in) :: num_th 
+    logical, intent(in) :: silence_std
+
     integer(8) :: e, em, g, g1, i, i1, cf, cf1, t
     integer(8) :: phase, mult
     complex(8) :: val, fac, fac1
 
+    call omp_set_num_threads(num_th)
     prod = 0
+    if (.not. silence_std) print *, 'Generating operator start'
     !$omp parallel shared(no, nor, ncf_d, dim_d, conf_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, ncf_f, dim_f), &
     !$omp& shared(conf_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, ntm, nc, cstr_tms, fac_tms, red_q, st_d, st_f), &
     !$omp& shared(prod) private(g, g1, e, em, i, i1, cf, cf1, phase, val, fac, fac1, t, prod1, mult)
     prod1 = 0
     !$omp do
     do g = 1, dim_d
-        if (mod(g, 10000) == 0) then 
+        if (mod(g, 10000) == 0 .and. .not. silence_std) then 
             if (omp_get_thread_num() == 0) print *, 'Generating operator column', g, '*', omp_get_max_threads()
         end if 
         mult = grsz_d(g)
@@ -425,6 +450,7 @@ subroutine overlap_op(no, nor, &
     prod = prod + prod1
     !$omp end critical
     !$omp end parallel
+    if (.not. silence_std) print *, 'Generating operator finish'
 end subroutine
 
 end module

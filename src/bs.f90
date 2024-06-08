@@ -4,7 +4,7 @@ use cfs
 
 contains
 
-subroutine generate_trs(no, nor, ncf, lid, rid, conf, perm_o, ph_o, fac_o, id_f, phase)
+subroutine generate_trs(no, nor, ncf, lid, rid, conf, perm_o, ph_o, fac_o, id_f, phase, num_th)
     implicit none
     integer(8), intent(in) :: no, nor, ncf
     integer(8), intent(in) :: lid(ibset(0_8, no - nor) + 1), rid(ibset(0_8, nor)), conf(ncf)
@@ -12,6 +12,7 @@ subroutine generate_trs(no, nor, ncf, lid, rid, conf, perm_o, ph_o, fac_o, id_f,
     complex(8), intent(in) :: fac_o(no)
     integer(8), intent(out) :: id_f(ncf)
     complex(8), intent(out) :: phase(ncf)
+    integer(8), intent(in) :: num_th 
 
     integer(8) :: i, o, o1, cf, cf1, cfp, ne, sgn, cf0 
     complex(8) :: phi
@@ -20,6 +21,7 @@ subroutine generate_trs(no, nor, ncf, lid, rid, conf, perm_o, ph_o, fac_o, id_f,
     do o = 0, no - 1
         if (ph_o(o + 1) == 1) cf0 = ibset(cf0, o)
     end do
+    call omp_set_num_threads(num_th)
     !$omp parallel shared(no, nor, perm_o, fac_o, ncf, lid, rid, conf, id_f, phase, cf0), &
     !$omp& private(i, o, o1, cf, cf1, cfp, ne, sgn, phi)
     !$omp do 
@@ -48,7 +50,8 @@ subroutine generate_trs(no, nor, ncf, lid, rid, conf, perm_o, ph_o, fac_o, id_f,
     !$omp end parallel
 end subroutine
 
-subroutine generate_bs_cfgr(no, nor, ncf, lid, rid, conf, nqnz, qnz_s, cyc, perm_o, ph_o, fac_o, szz, dim, cfgr, cffac)
+subroutine generate_bs_cfgr(no, nor, ncf, lid, rid, conf, nqnz, qnz_s, cyc, perm_o, ph_o, fac_o, szz, dim, cfgr, cffac, &
+        num_th, silence_std)
     implicit none
     integer(8), intent(in) :: no, nor, ncf
     integer(8), intent(in) :: lid(ibset(0_8, no - nor) + 1), rid(ibset(0_8, nor)), conf(ncf)
@@ -64,16 +67,18 @@ subroutine generate_bs_cfgr(no, nor, ncf, lid, rid, conf, nqnz, qnz_s, cyc, perm
     complex(8), allocatable :: phase(:,:)
     integer(8) :: i, j, k, sz
     real(8) :: wt0
+    integer(8), intent(in) :: num_th 
+    logical, intent(in) :: silence_std
 
     allocate(transf(ncf, nqnz))
     allocate(phase(ncf, nqnz))
 
-    print *, 'Generating transformations'
+    if (.not. silence_std) print *, 'Generating transformations'
     do j = 1, nqnz
         if (abs(qnz_s(j)) < 1.d-6) cycle
-        call generate_trs(no, nor, ncf, lid, rid, conf, perm_o(:, j), ph_o(:, j), fac_o(:, j), transf(:, j), phase(:, j))
+        call generate_trs(no, nor, ncf, lid, rid, conf, perm_o(:, j), ph_o(:, j), fac_o(:, j), transf(:, j), phase(:, j), num_th)
     end do
-    print *, 'Generating basis cfgr'
+    if (.not. silence_std) print *, 'Generating basis cfgr'
     dim = 0
     cfgr = -1
     do i = 1, ncf
@@ -104,13 +109,14 @@ subroutine generate_bs_cfgr(no, nor, ncf, lid, rid, conf, nqnz, qnz_s, cyc, perm
 
 end subroutine
 
-subroutine generate_bs_grel(ncf, szz, dim, cfgr, grel, grsz)
+subroutine generate_bs_grel(ncf, szz, dim, cfgr, grel, grsz, silence_std)
     implicit none
     integer(8), intent(in) :: ncf, dim, cfgr(ncf), szz
     integer(8), intent(out) :: grel(szz, dim), grsz(dim)
     integer(8) :: i, g
+    logical, intent(in) :: silence_std
 
-    print *, 'Generating basis grel'
+    if (.not. silence_std) print *, 'Generating basis grel'
     grel = -1 
     grsz = 0 
     do i = 1, ncf 
@@ -119,7 +125,7 @@ subroutine generate_bs_grel(ncf, szz, dim, cfgr, grel, grsz)
         grsz(g) = grsz(g) + 1
         grel(grsz(g), g) = i
     end do
-    print *, 'Generating basis finish'
+    if (.not. silence_std) print *, 'Generating basis finish'
 end subroutine
 
 end module
