@@ -1,10 +1,8 @@
-! ifort -shared -fPIC -larpack -qopenmp -O3 -o lib_fuzzifi_ed.so ./fort_src/*.f90
-
 module cfs
     
 contains
 
-subroutine count_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, num_th, silence_std)
+subroutine count_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, num_th, disp_std)
     use omp_lib
     implicit none
     integer(8), intent(in) :: no, nor, nqnu
@@ -13,14 +11,14 @@ subroutine count_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, num_th, silen
     integer(8), intent(out) :: ncf
     integer(8) :: qnu_1(nqnu), i, j
     integer(8), intent(in) :: num_th 
-    logical, intent(in) :: silence_std
+    integer(8), intent(in) :: disp_std
 
     call omp_set_num_threads(num_th)
-    if (.not. silence_std) print *, 'Counting configurations start', '*', omp_get_max_threads()
-    !$omp parallel shared(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid) private(qnu_1, i, j)
+    if (disp_std == 1) print *, 'Counting configurations start, number of threads :', omp_get_max_threads()
+    !$omp parallel shared(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, disp_std) private(qnu_1, i, j)
     !$omp do
     do i = 0, ibset(0_8, no - nor) - 1
-        if (mod(i + 1, 10000) == 0 .and. .not. silence_std) then 
+        if (mod(i + 1, 10000) == 0 .and. disp_std == 1) then 
             if (omp_get_thread_num() == 0) print *, 'Counting configurations', &
                 i + 1, '*', omp_get_max_threads(), '/', ibset(0_8, no - nor)
         end if 
@@ -39,7 +37,7 @@ subroutine count_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, num_th, silen
         lid(i + 1) = lid(i + 1) + lid(i)
     end do
     ncf = lid(ibset(0_8, no - nor) + 1)
-    if (.not. silence_std) print *, 'Counting configurations finish, total number :', ncf
+    if (disp_std == 1) print *, 'Counting configurations finish, total number :', ncf
 end subroutine
 
 recursive subroutine count_cfs_rec(no, nom, nqnu, qnu_1, qnu_o, modul, ct)
@@ -67,7 +65,7 @@ recursive subroutine count_cfs_rec(no, nom, nqnu, qnu_1, qnu_o, modul, ct)
     end do
 end subroutine
 
-subroutine generate_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, rid, conf, num_th, silence_std)
+subroutine generate_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, rid, conf, num_th, disp_std)
     use omp_lib
     implicit none
     integer(8), intent(in) :: no, nor, nqnu, ncf
@@ -76,15 +74,15 @@ subroutine generate_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, rid, conf,
     integer(8), intent(out) :: conf(ncf), rid(ibset(0_8, nor))
     integer(8) :: qnu_1(nqnu), i, j, ct
     integer(8), intent(in) :: num_th 
-    logical, intent(in) :: silence_std
+    integer(8), intent(in) :: disp_std
 
     call omp_set_num_threads(num_th)
-    if (.not. silence_std) print *, 'Generating configurations start'
+    if (disp_std == 1) print *, 'Generating configurations start'
     rid = 0
-    !$omp parallel shared(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, rid, conf) private(qnu_1, i, j, ct)
+    !$omp parallel shared(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, rid, conf, disp_std) private(qnu_1, i, j, ct)
     !$omp do
     do i = 0, ibset(0_8, no - nor) - 1
-        if (mod(i + 1, 10000) == 0 .and. .not. silence_std) then 
+        if (mod(i + 1, 10000) == 0 .and. disp_std == 1) then 
             if (omp_get_thread_num() == 0) print *, 'Generating configurations', &
                 i + 1, '*', omp_get_max_threads(), '/', ibset(0_8, no - nor)
         end if 
@@ -99,7 +97,7 @@ subroutine generate_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid, rid, conf,
     end do
     !$omp end do
     !$omp end parallel
-    if (.not. silence_std) print *, 'Generating configurations finish'
+    if (disp_std == 1)  print *, 'Generating configurations finish'
 end subroutine
 
 recursive subroutine generate_cfs_rec(no, nor, nom, nqnu, qnu_1, qnu_o, modul, ncf, ct, tmp, lid, rid, conf)

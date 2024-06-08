@@ -71,7 +71,7 @@ subroutine scal_prod(dim_d, dim_f, sym_q, nel, colptr, rowid, elval, st_d, st_f,
     !$omp end parallel
 end subroutine
 
-subroutine diagonalisation(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_in, eigval, eigvec, num_th, silence_std)
+subroutine diagonalisation(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_in, eigval, eigvec, num_th, disp_std)
     implicit none
     integer(8), intent(in) :: dim, sym_q, nel, nst, ncv_in
     integer(8), intent(in) :: colptr(dim + 1), rowid(nel)
@@ -79,7 +79,7 @@ subroutine diagonalisation(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_
     real(8), intent(in) :: tol
     complex(8), intent(out) :: eigval(nst + 1), eigvec(dim, nst + 1)
     integer(8), intent(in) :: num_th 
-    logical, intent(in) :: silence_std
+    integer(8), intent(in) :: disp_std
 
     integer :: nit
 
@@ -115,7 +115,7 @@ subroutine diagonalisation(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_
     allocate(rwork(ncv))
     info = 0
 
-    if (.not. silence_std) print *, 'Diagonisation begins.'
+    if (disp_std == 1) print *, 'Diagonisation begins.'
     call znaupd(ido, bmat, n, which, nev, tol, resid, ncv, v, &
         ldv, iparam, ipntr, workd, workl, lworkl, rwork, info)
     nit = 0
@@ -124,7 +124,7 @@ subroutine diagonalisation(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_
         call znaupd(ido, bmat, n, which, nev, tol, resid, ncv, v, &
             ldv, iparam, ipntr, workd, workl, lworkl, rwork, info)
         nit = nit + 1
-        if (mod(nit, 100) == 0 .and. .not. silence_std) print *, 'Diagonisation, iteration : ', nit
+        if (mod(nit, 100) == 0 .and. disp_std == 1) print *, 'Diagonisation, iteration : ', nit
     end do
     if (info < 0 .or. ido /= 99) print *, 'Errors in znaupd, info =', info
 
@@ -137,7 +137,7 @@ subroutine diagonalisation(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_
     call zneupd(rvec, howmny, select, eigval, eigvec, ldz, sigma, workev, bmat, n, which, nev, &
         tol, resid, ncv, v, ldv, iparam, ipntr, workd, workl, lworkl, rwork, info)
 
-    if (info == 0 .and. .not. silence_std) print *, 'Diagonisation successful, total iteration : ', nit
+    if (info == 0 .and. disp_std == 1) print *, 'Diagonisation successful, total iteration : ', nit
 
     deallocate(resid)
     deallocate(v)
