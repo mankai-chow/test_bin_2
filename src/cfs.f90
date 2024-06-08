@@ -13,7 +13,7 @@ subroutine count_cfs(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid)
     integer(8), intent(out) :: ncf
     integer(8) :: qnu_1(nqnu), i, j
 
-    print *, 'Counting configurations start'
+    print *, 'Counting configurations start', '*', omp_get_max_threads()
     !$omp parallel shared(no, nor, nqnu, qnu_s, qnu_o, modul, ncf, lid) private(qnu_1, i, j)
     !$omp do
     do i = 0, ibset(0_8, no - nor) - 1
