@@ -4,7 +4,7 @@
 using BinaryBuilder, Pkg
 
 name = "FuzzifiED"
-version = v"0.6.1"
+version = v"0.7.3"
 
 # Collection of sources required to complete build
 sources = [

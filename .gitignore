@@ -2,3 +2,6 @@ build/
 products/
 publish/
 .vscode/
+**.mod
+**.o
+**.so

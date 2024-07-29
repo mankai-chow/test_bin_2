@@ -31,7 +31,7 @@ subroutine decomp_basis(no, nor, &
     complex(8), intent(out) :: st_dcp(dim_b, dim_a)
 
     integer(8) :: ga, gb, g0, ea, eb, ia, ib, i0, cfa, cfb, cf0, cfp, o, ph
-    complex(8) :: fac, amp_cfa(ncf_a), amp_cfb(ncf_b)
+    complex(8) :: amp_cfa(ncf_a), amp_cfb(ncf_b)
 
     do ia = 1, ncf_a 
         amp_cfa(ia) = 1 
