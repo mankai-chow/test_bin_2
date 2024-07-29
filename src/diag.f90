@@ -17,7 +17,7 @@ subroutine vec_prod(dim_d, dim_f, sym_q, nel, colptr, rowid, elval, st_d, st_f, 
     call omp_set_num_threads(num_th)
     st_f = 0
     !$omp parallel shared(dim_d, dim_f, sym_q, nel, colptr, rowid, elval, st_d, st_f) private(st_f1, i, j, i1, val)
-    allocate(st_f1(dim_d))
+    allocate(st_f1(dim_f))
     st_f1 = 0 
     !$omp do 
     do i = 1, dim_d
