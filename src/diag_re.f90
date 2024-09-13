@@ -147,7 +147,8 @@ subroutine diagonalisation_re(dim, sym_q, nel, colptr, rowid, elval, nst, tol, n
     deallocate(workev)
 end subroutine
 
-subroutine diagonalisation_init_re(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_in, initvec, eigval, eigvec, num_th, disp_std)
+subroutine diagonalisation_init_re(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_in, &
+        initvec, eigval, eigvec, num_th, disp_std)
     implicit none
     integer(8), intent(in) :: dim, sym_q, nel, nst, ncv_in
     integer(8), intent(in) :: colptr(dim + 1), rowid(nel)
