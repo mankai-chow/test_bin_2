@@ -147,4 +147,83 @@ subroutine diagonalisation_re(dim, sym_q, nel, colptr, rowid, elval, nst, tol, n
     deallocate(workev)
 end subroutine
 
+subroutine diagonalisation_init_re(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_in, initvec, eigval, eigvec, num_th, disp_std)
+    implicit none
+    integer(8), intent(in) :: dim, sym_q, nel, nst, ncv_in
+    integer(8), intent(in) :: colptr(dim + 1), rowid(nel)
+    real(8), intent(in) :: elval(nel), initvec(dim)
+    real(8), intent(in) :: tol
+    real(8), intent(out) :: eigval(nst + 1), eigvec(dim, nst + 1)
+    integer(8), intent(in) :: num_th 
+    integer(8), intent(in) :: disp_std
+
+    integer :: nit
+
+    ! dnaupd type_basis
+    character :: bmat * 1, which * 2
+    integer :: ido, n, ncv, nev, ldv, iparam(11), ipntr(14), lworkl, info
+    real(8) :: eigval_im(nst + 1)
+    real(8), allocatable :: resid(:), v(:,:), workd(:), workl(:)
+    real(8), allocatable :: rwork(:)
+
+    ! dneupd type_basis
+    logical :: rvec
+    integer :: ldz
+    character :: howmny * 1
+    real(8) :: sigmar, sigmai
+    logical, allocatable :: select(:)
+    real(8), allocatable :: workev(:)
+
+    ido = 0
+    bmat = 'I'
+    n = dim
+    which = 'SR'
+    allocate(resid(n))
+    nev = min(nst, n - 1)
+    ncv = ncv_in
+    allocate(v(n, ncv))
+    ldv = n
+    iparam(1) = 1
+    iparam(3) = 300
+    iparam(7) = 1
+    allocate(workd(3 * n))
+    lworkl = 3 * ncv ** 2 + 6 * ncv
+    allocate(workl(lworkl))
+    allocate(rwork(ncv))
+    info = 1
+    resid = initvec
+
+    if (disp_std == 1) print *, 'Diagonisation begins.'
+    call dnaupd(ido, bmat, n, which, nev, tol, resid, ncv, v, &
+        ldv, iparam, ipntr, workd, workl, lworkl, info)
+    nit = 0
+    do while (ido == 1 .or. ido == -1)
+        call vec_prod_re(dim, dim, sym_q, nel, colptr, rowid, elval, workd(ipntr(1)), workd(ipntr(2)), num_th)
+        call dnaupd(ido, bmat, n, which, nev, tol, resid, ncv, v, &
+            ldv, iparam, ipntr, workd, workl, lworkl, info)
+        nit = nit + 1
+        if (mod(nit, 100) == 0 .and. disp_std == 1) print *, 'Diagonisation, iteration : ', nit
+    end do
+    if (info < 0 .or. ido /= 99) print *, 'Errors in dnaupd, info =', info
+
+    rvec = .true.
+    howmny = 'A'
+    allocate(select(ncv))
+    ldz = n
+    allocate(workev(3 * ncv))
+
+    call dneupd(rvec, howmny, select, eigval, eigval_im, eigvec, ldz, sigmar, sigmai, workev, bmat, n, which, nev, &
+        tol, resid, ncv, v, ldv, iparam, ipntr, workd, workl, lworkl, info)
+
+    if (info == 0 .and. disp_std == 1) print *, 'Diagonisation finish, total iteration : ', nit
+
+    deallocate(resid)
+    deallocate(v)
+    deallocate(workd)
+    deallocate(workl)
+    deallocate(rwork)
+    deallocate(select)
+    deallocate(workev)
+end subroutine
+
 end module 

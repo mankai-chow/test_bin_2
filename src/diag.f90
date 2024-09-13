@@ -148,4 +148,82 @@ subroutine diagonalisation(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_
     deallocate(workev)
 end subroutine
 
+subroutine diagonalisation_init(dim, sym_q, nel, colptr, rowid, elval, nst, tol, ncv_in, initvec, eigval, eigvec, num_th, disp_std)
+    implicit none
+    integer(8), intent(in) :: dim, sym_q, nel, nst, ncv_in
+    integer(8), intent(in) :: colptr(dim + 1), rowid(nel)
+    complex(8), intent(in) :: elval(nel), initvec(dim)
+    real(8), intent(in) :: tol
+    complex(8), intent(out) :: eigval(nst + 1), eigvec(dim, nst + 1)
+    integer(8), intent(in) :: num_th 
+    integer(8), intent(in) :: disp_std
+
+    integer :: nit
+
+    ! znaupd type_basis
+    character :: bmat * 1, which * 2
+    integer :: ido, n, ncv, nev, ldv, iparam(11), ipntr(14), lworkl, info
+    complex(8), allocatable :: resid(:), v(:,:), workd(:), workl(:)
+    real(8), allocatable :: rwork(:)
+
+    ! zneupd type_basis
+    logical :: rvec
+    integer :: ldz
+    character :: howmny * 1
+    complex(8) :: sigma
+    logical, allocatable :: select(:)
+    complex(8), allocatable :: workev(:)
+
+    ido = 0
+    bmat = 'I'
+    n = dim
+    which = 'SR'
+    allocate(resid(n))
+    resid = initvec
+    nev = min(nst, n - 1)
+    ncv = ncv_in
+    allocate(v(n, ncv))
+    ldv = n
+    iparam(1) = 1
+    iparam(3) = 300
+    iparam(7) = 1
+    allocate(workd(3 * n))
+    lworkl = 3 * ncv ** 2 + 5 * ncv
+    allocate(workl(lworkl))
+    allocate(rwork(ncv))
+    info = 1
+
+    if (disp_std == 1) print *, 'Diagonisation begins.'
+    call znaupd(ido, bmat, n, which, nev, tol, resid, ncv, v, &
+        ldv, iparam, ipntr, workd, workl, lworkl, rwork, info)
+    nit = 0
+    do while (ido == 1 .or. ido == -1)
+        call vec_prod(dim, dim, sym_q, nel, colptr, rowid, elval, workd(ipntr(1)),  workd(ipntr(2)), num_th)
+        call znaupd(ido, bmat, n, which, nev, tol, resid, ncv, v, &
+            ldv, iparam, ipntr, workd, workl, lworkl, rwork, info)
+        nit = nit + 1
+        if (mod(nit, 100) == 0 .and. disp_std == 1) print *, 'Diagonisation, iteration : ', nit
+    end do
+    if (info < 0 .or. ido /= 99) print *, 'Errors in znaupd, info =', info
+
+    rvec = .true.
+    howmny = 'A'
+    allocate(select(ncv))
+    ldz = n
+    allocate(workev(2 * ncv))
+
+    call zneupd(rvec, howmny, select, eigval, eigvec, ldz, sigma, workev, bmat, n, which, nev, &
+        tol, resid, ncv, v, ldv, iparam, ipntr, workd, workl, lworkl, rwork, info)
+
+    if (info == 0 .and. disp_std == 1) print *, 'Diagonisation successful, total iteration : ', nit
+
+    deallocate(resid)
+    deallocate(v)
+    deallocate(workd)
+    deallocate(workl)
+    deallocate(rwork)
+    deallocate(select)
+    deallocate(workev)
+end subroutine
+
 end module 
