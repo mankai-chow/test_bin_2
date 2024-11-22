@@ -1,9 +1,9 @@
 cd ../src
-gfortran ./cfs.f90     -fPIC -larpack -fopenmp -c 
-gfortran ./bs.f90      -fPIC -larpack -fopenmp -c 
-gfortran ./op.f90      -fPIC -larpack -fopenmp -c 
-gfortran ./diag.f90    -fPIC -larpack -fopenmp -c 
-gfortran ./diag_re.f90 -fPIC -larpack -fopenmp -c 
-gfortran ./ent.f90     -fPIC -larpack -fopenmp -c 
-gfortran ./*.o -shared -fPIC -larpack -fopenmp -o libfuzzified.so 
+gfortran -fPIC -c ./cfs.f90      
+gfortran -fPIC -c ./bs.f90       
+gfortran -fPIC -c ./op.f90       
+gfortran -fPIC -c ./diag.f90     
+gfortran -fPIC -c ./diag_re.f90  
+gfortran -fPIC -c ./ent.f90      
+gfortran ./*.o -shared -larpack -fopenmp -o libfuzzified.so 
 cd ../test
