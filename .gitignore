@@ -5,3 +5,4 @@ publish/
 **.mod
 **.o
 **.so
+**.out

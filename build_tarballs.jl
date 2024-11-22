@@ -1,10 +1,11 @@
-# julia build_tarballs.jl --debug --verbose --deploy="mankai-chow/FuzzifiED_jll.jl"
+# ~/Téléchargements/julia-1.7.3/bin/julia build_tarballs.jl --debug --verbose --deploy="mankai-chow/FuzzifiED_jll.jl"
 # Note that this script can accept some limited command-line arguments, run
 # `julia build_tarballs.jl --help` to see a usage message.
+ENV["BINARYBUILDER_AUTOMATIC_APPLE"] = "true"
 using BinaryBuilder, Pkg
 
 name = "FuzzifiED"
-version = v"0.9.0"
+version = v"0.9.2"
 
 # Collection of sources required to complete build
 sources = [
@@ -14,6 +15,7 @@ sources = [
 # Bash recipe for building across all platforms
 script = raw"""
 cd $WORKSPACE/srcdir
+BINARYBUILDER_AUTOMATIC_APPLE=true
 if [[ ${nbits} == 32 ]]; then
     gfortran -fPIC -larpack -fopenmp -L ${libdir} -c ./cfs.f90
     gfortran -fPIC -larpack -fopenmp -L ${libdir} -c ./bs.f90
