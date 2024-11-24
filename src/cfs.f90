@@ -132,7 +132,7 @@ recursive subroutine generate_cfs_rec(no, nor, nom, nqnu, qnu_1, qnu_o, modul, n
     end do
 end subroutine
 
-function search_conf(no, nor, lid, rid, cf) result(i)
+function search_cf(no, nor, lid, rid, cf) result(i)
     implicit none
     integer(8), intent(in) :: no, nor
     integer(8), intent(in) :: lid(ibset(0_8, no - nor) + 1), rid(ibset(0_8, nor))

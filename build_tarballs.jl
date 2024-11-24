@@ -5,7 +5,7 @@ ENV["BINARYBUILDER_AUTOMATIC_APPLE"] = "true"
 using BinaryBuilder, Pkg
 
 name = "FuzzifiED"
-version = v"0.9.2"
+version = v"0.10.0"
 
 # Collection of sources required to complete build
 sources = [
@@ -15,24 +15,21 @@ sources = [
 # Bash recipe for building across all platforms
 script = raw"""
 cd $WORKSPACE/srcdir
-BINARYBUILDER_AUTOMATIC_APPLE=true
 if [[ ${nbits} == 32 ]]; then
-    gfortran -fPIC -larpack -fopenmp -L ${libdir} -c ./cfs.f90
-    gfortran -fPIC -larpack -fopenmp -L ${libdir} -c ./bs.f90
-    gfortran -fPIC -larpack -fopenmp -L ${libdir} -c ./op.f90
-    gfortran -fPIC -larpack -fopenmp -L ${libdir} -c ./diag.f90
-    gfortran -fPIC -larpack -fopenmp -L ${libdir} -c ./diag_re.f90
-    gfortran -fPIC -larpack -fopenmp -L ${libdir} -c ./ent.f90
-    gfortran -fPIC -shared -larpack -fopenmp -L ${libdir} -o ${libdir}/libfuzzified.$dlext ./*.o
-else 
-    gfortran -fPIC -fdefault-integer-8 -larpack -fopenmp -L ${libdir} -c ./cfs.f90
-    gfortran -fPIC -fdefault-integer-8 -larpack -fopenmp -L ${libdir} -c ./bs.f90
-    gfortran -fPIC -fdefault-integer-8 -larpack -fopenmp -L ${libdir} -c ./op.f90
-    gfortran -fPIC -fdefault-integer-8 -larpack -fopenmp -L ${libdir} -c ./diag.f90
-    gfortran -fPIC -fdefault-integer-8 -larpack -fopenmp -L ${libdir} -c ./diag_re.f90
-    gfortran -fPIC -fdefault-integer-8 -larpack -fopenmp -L ${libdir} -c ./ent.f90
-    gfortran -fPIC -fdefault-integer-8 -shared -larpack -fopenmp -L ${libdir} -o ${libdir}/libfuzzified.$dlext ./*.o
+    FFLAGS="-fPIC -fopenmp"
+else
+    FFLAGS="-fdefault-integer-8 -fPIC -fopenmp"
 fi
+for src in cfs.f90 bs.f90 op.f90 diag.f90 diag_re.f90 ent.f90; do
+    gfortran ${FFLAGS} -c ./${src}
+done
+gfortran ${FFLAGS} -shared -o ${libdir}/libfuzzified.$dlext ./*.o -L ${libdir} -larpack
+cd super
+for src in scfs.f90 sbs.f90 sop.f90; do
+    gfortran ${FFLAGS} -c ./${src}
+done
+gfortran ${FFLAGS} -shared -o ${libdir}/libsuperfuzzified.$dlext ./*.o
+cd ..
 """
 
 # These are the platforms we will build for by default, unless further
@@ -43,6 +40,7 @@ platforms = expand_gfortran_versions(platforms)
 # The products that we will ensure are always built
 products = [
     LibraryProduct("libfuzzified", :LibpathFuzzifiED)
+    LibraryProduct("libsuperfuzzified", :LibpathSuperFuzzifiED)
 ]
 
 # Dependencies that must be installed before this package can be built

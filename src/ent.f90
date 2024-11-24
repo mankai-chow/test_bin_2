@@ -59,7 +59,7 @@ subroutine decomp_basis(no, nor, &
                     cfb = conf_b(ib)
                     if (iand(cfa, cfb) /= 0) cycle
                     cf0 = ior(cfa, cfb) 
-                    i0 = search_conf(no, nor, lid_0, rid_0, cf0)
+                    i0 = search_cf(no, nor, lid_0, rid_0, cf0)
                     if (i0 <= 0 .or. i0 > ncf_0) cycle
                     if (cf0 /= conf_0(i0)) cycle
                     g0 = cfgr_0(i0)
@@ -122,7 +122,7 @@ subroutine combine_basis(no, nor, &
                     cfb = conf_b(ib)
                     if (iand(cfa, cfb) /= 0) cycle
                     cf0 = ior(cfa, cfb) 
-                    i0 = search_conf(no, nor, lid_0, rid_0, cf0)
+                    i0 = search_cf(no, nor, lid_0, rid_0, cf0)
                     if (i0 <= 0 .or. i0 > ncf_0) cycle
                     if (cf0 /= conf_0(i0)) cycle
                     g0 = cfgr_0(i0)
