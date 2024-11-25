@@ -24,7 +24,7 @@ subroutine generate_strs(nof, nob, ncf, lid, rid, conff, confb, perm_of, perm_ob
     end do
     call omp_set_num_threads(num_th)
     !$omp parallel shared(nof, nob, ncf, lid, rid, conff, confb, perm_of, perm_ob, ph_of, fac_of, fac_ob, id_f, phase, cff0), &
-    !$omp& private(i, of, of1, cff, cff1, cffp, sgn, ob, ob1, cfb, cfb1, nb, nb1)
+    !$omp& private(i, of, of1, cff, cff1, cffp, sgn, ob, ob1, cfb, cfb1, nb, nb1, phi)
     !$omp do 
     do i = 1, ncf
         phi = 1.

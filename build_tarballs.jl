@@ -5,7 +5,7 @@ ENV["BINARYBUILDER_AUTOMATIC_APPLE"] = "true"
 using BinaryBuilder, Pkg
 
 name = "FuzzifiED"
-version = v"0.10.0"
+version = v"0.10.2"
 
 # Collection of sources required to complete build
 sources = [
@@ -16,9 +16,9 @@ sources = [
 script = raw"""
 cd $WORKSPACE/srcdir
 if [[ ${nbits} == 32 ]]; then
-    FFLAGS="-fPIC -fopenmp"
+    FFLAGS="-O3 -fPIC -fopenmp"
 else
-    FFLAGS="-fdefault-integer-8 -fPIC -fopenmp"
+    FFLAGS="-O3 -fdefault-integer-8 -fPIC -fopenmp"
 fi
 for src in cfs.f90 bs.f90 op.f90 diag.f90 diag_re.f90 ent.f90; do
     gfortran ${FFLAGS} -c ./${src}
@@ -28,7 +28,7 @@ cd super
 for src in scfs.f90 sbs.f90 sop.f90; do
     gfortran ${FFLAGS} -c ./${src}
 done
-gfortran ${FFLAGS} -shared -o ${libdir}/libsuperfuzzified.$dlext ./*.o
+gfortran ${FFLAGS} -shared -o ${libdir}/libfuzzifino.$dlext ./*.o
 cd ..
 """
 
@@ -40,7 +40,7 @@ platforms = expand_gfortran_versions(platforms)
 # The products that we will ensure are always built
 products = [
     LibraryProduct("libfuzzified", :LibpathFuzzifiED)
-    LibraryProduct("libsuperfuzzified", :LibpathSuperFuzzifiED)
+    LibraryProduct("libfuzzifino", :LibpathFuzzifino)
 ]
 
 # Dependencies that must be installed before this package can be built
