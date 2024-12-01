@@ -5,7 +5,7 @@ ENV["BINARYBUILDER_AUTOMATIC_APPLE"] = "true"
 using BinaryBuilder, Pkg
 
 name = "FuzzifiED"
-version = v"0.10.2"
+version = v"0.10.3"
 
 # Collection of sources required to complete build
 sources = [

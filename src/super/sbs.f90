@@ -4,10 +4,14 @@ use scfs
 
 contains
 
-subroutine generate_strs(nof, nob, ncf, lid, rid, conff, confb, perm_of, perm_ob, ph_of, fac_of, fac_ob, id_f, phase, num_th)
+subroutine generate_strs(nof, nob, norf, norb, nebm, ncf, lid, rid, conff, confb, perm_of, perm_ob, & 
+    ph_of, fac_of, fac_ob, id_f, phase, binom, num_th)
     implicit none
-    integer(8), intent(in) :: nof, nob, ncf
-    integer(8), intent(in) :: lid(ibset(0_8, nof) + 1), rid(ibset(0_8, nob)), conff(ncf), confb(ncf)
+    integer(8), intent(in) :: nof, nob, norf, norb, nebm, ncf
+    integer(8), intent(in) :: binom(nebm + 1, nob + 1)
+    integer(8), intent(in) :: lid(ishft(binom(nebm + 1, nob - norb + 1) + 1, nof - norf) + 1)
+    integer(8), intent(in) :: rid(ishft(binom(nebm + 1, norb + 1) + 1, norf) + 1)
+    integer(8), intent(in) :: conff(ncf), confb(ncf)
     integer(8), intent(in) :: perm_of(nof), perm_ob(nob), ph_of(nof)
     complex(8), intent(in) :: fac_of(nof), fac_ob(nob)
     integer(8), intent(out) :: id_f(ncf)
@@ -15,7 +19,7 @@ subroutine generate_strs(nof, nob, ncf, lid, rid, conff, confb, perm_of, perm_ob
     integer(8), intent(in) :: num_th 
 
     integer(8) :: i, of, of1, cff, cff1, cffp, sgn, cff0 
-    integer(8) :: ob, ob1, cfb, cfb1, nb(nob), nb1(nob)
+    integer(8) :: ob, ob1, cfb, nb(nob), nb1(nob)
     complex(8) :: phi
 
     cff0 = 0 
@@ -24,19 +28,18 @@ subroutine generate_strs(nof, nob, ncf, lid, rid, conff, confb, perm_of, perm_ob
     end do
     call omp_set_num_threads(num_th)
     !$omp parallel shared(nof, nob, ncf, lid, rid, conff, confb, perm_of, perm_ob, ph_of, fac_of, fac_ob, id_f, phase, cff0), &
-    !$omp& private(i, of, of1, cff, cff1, cffp, sgn, ob, ob1, cfb, cfb1, nb, nb1, phi)
+    !$omp& private(i, of, of1, cff, cff1, cffp, sgn, ob, ob1, cfb, nb, nb1, phi)
     !$omp do 
     do i = 1, ncf
         phi = 1.
         cfb = confb(i)
-        nb = decode_nb(nob, cfb)
+        nb = decode_nb(nob, nebm, cfb, binom)
         nb1 = 0 
         do ob = 1, nob 
             ob1 = perm_ob(ob)
             phi = phi * fac_ob(ob) ** nb(ob)
             nb1(ob1) = nb(ob)
         end do
-        cfb1 = encode_nb(nob, nb1)
 
         cff = conff(i)
         cff1 = cff0
@@ -53,18 +56,21 @@ subroutine generate_strs(nof, nob, ncf, lid, rid, conff, confb, perm_of, perm_ob
             sgn = ieor(sgn, ibits(cffp, of, 1_8))
         end do
         if (sgn == 1) phi = -phi
-        id_f(i) = search_scf(nof, nob, lid, rid, cff1, cfb1)
+        id_f(i) = search_scf(nof, nob, norf, norb, nebm, lid, rid, cff1, nb1, binom)
         phase(i) = phi
     end do
     !$omp end do
     !$omp end parallel
 end subroutine
 
-subroutine generate_sbs_cfgr(nof, nob, ncf, lid, rid, conff, confb, nqnz, qnz_s, cyc, perm_of, perm_ob, ph_of, fac_of, fac_ob, &
-        szz, dim, cfgr, cffac, num_th, disp_std)
+subroutine generate_sbs_cfgr(nof, nob, norf, norb, nebm, ncf, lid, rid, conff, confb, nqnz, qnz_s, cyc, &
+        perm_of, perm_ob, ph_of, fac_of, fac_ob, szz, dim, cfgr, cffac, binom, num_th, disp_std)
     implicit none
-    integer(8), intent(in) :: nof, nob, ncf
-    integer(8), intent(in) :: lid(ibset(0_8, nof) + 1), rid(ibset(0_8, nob)), conff(ncf), confb(ncf)
+    integer(8), intent(in) :: nof, nob, norf, norb, nebm, ncf
+    integer(8), intent(in) :: binom(nebm + 1, nob + 1)
+    integer(8), intent(in) :: lid(ishft(binom(nebm + 1, nob - norb + 1) + 1, nof - norf) + 1)
+    integer(8), intent(in) :: rid(ishft(binom(nebm + 1, norb + 1) + 1, norf) + 1)
+    integer(8), intent(in) :: conff(ncf), confb(ncf)
     integer(8), intent(in) :: nqnz, cyc(nqnz), szz
     complex(8), intent(in) :: qnz_s(nqnz)
     integer(8), intent(in) :: perm_of(nof, nqnz), perm_ob(nob, nqnz), ph_of(nof, nqnz)
@@ -86,8 +92,8 @@ subroutine generate_sbs_cfgr(nof, nob, ncf, lid, rid, conff, confb, nqnz, qnz_s,
     if (disp_std == 1) print *, 'Generating transformations'
     do j = 1, nqnz
         if (abs(qnz_s(j)) < 1.d-6) cycle
-        call generate_strs(nof, nob, ncf, lid, rid, conff, confb, perm_of(:, j), perm_ob(:, j), ph_of(:, j), &
-            fac_of(:, j), fac_ob(:, j), transf(:, j), phase(:, j), num_th)
+        call generate_strs(nof, nob, norf, norb, nebm, ncf, lid, rid, conff, confb, perm_of(:, j), perm_ob(:, j), ph_of(:, j), &
+            fac_of(:, j), fac_ob(:, j), transf(:, j), phase(:, j), binom, num_th)
     end do
     if (disp_std == 1) print *, 'Generating basis cfgr'
     dim = 0

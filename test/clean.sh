@@ -1,1 +1,0 @@
-rm ../src/*.o ../src/*.mod ../src/*.so
