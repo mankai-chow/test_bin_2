@@ -6,3 +6,4 @@ publish/
 **.o
 **.so
 **.out
+**tmp**

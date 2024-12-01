@@ -4,28 +4,27 @@ use scfs
 
 contains 
 
-function shopping(cffd, cfbd, cfff, cfbf, nof, nob, nc, cstr_tm) result(phase)
+function shopping(cffd, nbd, cfff, nbf, nof, nob, nc, cstr_tm) result(phase)
     implicit none 
-    integer(8), intent(in) :: cffd, cfbd, nof, nob, nc, cstr_tm(2 * nc)
-    integer(8), intent(out) :: cfff, cfbf
+    integer(8), intent(in) :: cffd, nbd(nob), nof, nob, nc, cstr_tm(2 * nc)
+    integer(8), intent(out) :: cfff, nbf(nob)
     complex(8) :: phase
-    integer(8) :: i, cffp, cffi, o, nbd(nob), nbf(nob)
+    integer(8) :: i, cffp, o
 
-    cffi = cffd
+    cfff = cffd
     cffp = 0
-    nbd = decode_nb(nob, cfbd)
     nbf = nbd
     phase = 1
     do i = nc * 2 - 1, 1, -2 
         if (cstr_tm(i) == -1) cycle
         o = cstr_tm(i + 1)
         if (o > 0) then 
-            if (cstr_tm(i) == ibits(cffi, o - 1, 1_8)) then 
+            if (cstr_tm(i) == ibits(cfff, o - 1, 1_8)) then 
                 phase = 0
                 return
             end if
-            cffi = ieor(cffi, ibset(0_8, o - 1))
-            cffp = ieor(cffp, ibits(cffi, 0_8, o - 1))
+            cfff = ieor(cfff, ibset(0_8, o - 1))
+            cffp = ieor(cffp, ibits(cfff, 0_8, o - 1))
         else 
             o = -o 
             if (cstr_tm(i) == 0) then 
@@ -44,28 +43,32 @@ function shopping(cffd, cfbd, cfff, cfbf, nof, nob, nc, cstr_tm) result(phase)
         end if 
     end do 
 
-    cfff = cffi
-    cfbf = encode_nb(nob, nbf)
     do i = 0, nof - 1
         if (ibits(cffp, i, 1_8) == 1) phase = -phase
     end do
 end function
 
-subroutine count_sop(nof, nob, &
-    ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, &
-    ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, &
+subroutine count_sop(nof, nob, norf, norb, &
+    nebm_d, ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, binom_d, &
+    nebm_f, ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, binom_f, &
     ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel, colptr, num_th, disp_std)
     use omp_lib
     implicit none
-    integer(8), intent(in) :: nof, nob
+    integer(8), intent(in) :: nof, nob, norf, norb
 
-    integer(8), intent(in) :: ncf_d, dim_d, szz_d
-    integer(8), intent(in) :: conff_d(ncf_d), confb_d(ncf_d),lid_d(ibset(0_8, nof) + 1), rid_d(ibset(0_8, nob))
+    integer(8), intent(in) :: nebm_d, ncf_d, dim_d, szz_d
+    integer(8), intent(in) :: conff_d(ncf_d), confb_d(ncf_d)
+    integer(8), intent(in) :: binom_d(nebm_d + 1, nob + 1)
+    integer(8), intent(in) :: lid_d(ishft(binom_d(nebm_d + 1, nob - norb + 1) + 1, nof - norf) + 1)
+    integer(8), intent(in) :: rid_d(ishft(binom_d(nebm_d + 1, norb + 1) + 1, norf) + 1)
     integer(8), intent(in) :: cfgr_d(ncf_d), grel_d(szz_d, dim_d), grsz_d(dim_d)
     complex(8), intent(in) :: cffac_d(ncf_d)
 
-    integer(8), intent(in) :: ncf_f, dim_f, szz_f
-    integer(8), intent(in) :: conff_f(ncf_f), confb_f(ncf_f), lid_f(ibset(0_8, nof) + 1), rid_f(ibset(0_8, nob))
+    integer(8), intent(in) :: nebm_f, ncf_f, dim_f, szz_f
+    integer(8), intent(in) :: conff_f(ncf_f), confb_f(ncf_f)
+    integer(8), intent(in) :: binom_f(nebm_f + 1, nob + 1)
+    integer(8), intent(in) :: lid_f(ishft(binom_f(nebm_f + 1, nob - norb + 1) + 1, nof - norf) + 1)
+    integer(8), intent(in) :: rid_f(ishft(binom_f(nebm_f + 1, norb + 1) + 1, norf) + 1)
     integer(8), intent(in) :: cfgr_f(ncf_f), grel_f(szz_f, dim_f), grsz_f(dim_f)
     complex(8), intent(in) :: cffac_f(ncf_f)
 
@@ -75,6 +78,7 @@ subroutine count_sop(nof, nob, &
     integer(8), intent(out) :: nel, colptr(dim_d + 1)
     
     integer(8) :: g, g1, e, em, i, i1, cff, cfb, cff1, cfb1, t
+    integer(8) :: nb(nob), nb1(nob)
     integer(8) :: index, index_last, last_id
     complex(8) :: phase
     integer(8), allocatable :: last_el(:)
@@ -85,10 +89,11 @@ subroutine count_sop(nof, nob, &
     call omp_set_num_threads(num_th)
     if (disp_std == 1) print *, 'Counting operator start'
     colptr(1) = 1
-    !$omp parallel shared(nof, nob, ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d), &
-    !$omp& shared(ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f), &
+    !$omp parallel shared(nof, nob, norf, norb), &
+    !$omp& shared(nebm_d, ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, binom_d), &
+    !$omp& shared(nebm_f, ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, binom_f), &
     !$omp& shared(ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel, colptr, disp_std), & 
-    !$omp& private(g, g1, e, em, i, i1, cff, cfb, cff1, cfb1, index, index_last, last_el, last_id, phase, t)
+    !$omp& private(g, g1, e, em, i, i1, cff, cfb, nb, cff1, cfb1, nb1, index, index_last, last_el, last_id, phase, t)
     allocate(last_el(dim_f))
     index = 0
     last_el = 0
@@ -106,14 +111,16 @@ subroutine count_sop(nof, nob, &
             if (i == -1) cycle
             cff = conff_d(i)
             cfb = confb_d(i)
+            nb = decode_nb(nob, nebm_d, cfb, binom_d)
 
             ! 1bd term
             do t = 1, ntm
-                phase = shopping(cff, cfb, cff1, cfb1, nof, nob, nc, cstr_tms(:, t))
+                phase = shopping(cff, nb, cff1, nb1, nof, nob, nc, cstr_tms(:, t))
                 if (phase == 0) cycle
-                i1 = search_scf(nof, nob, lid_f, rid_f, cff1, cfb1)
+                i1 = search_scf(nof, nob, norf, norb, nebm_f, lid_f, rid_f, cff1, nb1, binom_f)
                 if (i1 <= 0 .or. i1 > ncf_f) cycle
                 if (cff1 /= conff_f(i1)) cycle
+                cfb1 = encode_nb(nob, nebm_f, nb1, binom_f)
                 if (cfb1 /= confb_f(i1)) cycle
 
                 g1 = cfgr_f(i1)
@@ -138,21 +145,27 @@ subroutine count_sop(nof, nob, &
     if (disp_std == 1) print *, 'Counting operator finish, element count :', nel
 end subroutine
 
-subroutine generate_sop(nof, nob, &
-    ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, &
-    ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, &
+subroutine generate_sop(nof, nob, norf, norb, &
+    nebm_d, ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, binom_d, &
+    nebm_f, ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, binom_f, &
     ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel, colptr, rowid, elval, num_th, disp_std)
     use omp_lib
     implicit none
-    integer(8), intent(in) :: nof, nob
+    integer(8), intent(in) :: nof, nob, norf, norb
 
-    integer(8), intent(in) :: ncf_d, dim_d, szz_d
-    integer(8), intent(in) :: conff_d(ncf_d), confb_d(ncf_d),lid_d(ibset(0_8, nof) + 1), rid_d(ibset(0_8, nob))
+    integer(8), intent(in) :: nebm_d, ncf_d, dim_d, szz_d
+    integer(8), intent(in) :: conff_d(ncf_d), confb_d(ncf_d)
+    integer(8), intent(in) :: binom_d(nebm_d + 1, nob + 1)
+    integer(8), intent(in) :: lid_d(ishft(binom_d(nebm_d + 1, nob - norb + 1) + 1, nof - norf) + 1)
+    integer(8), intent(in) :: rid_d(ishft(binom_d(nebm_d + 1, norb + 1) + 1, norf) + 1)
     integer(8), intent(in) :: cfgr_d(ncf_d), grel_d(szz_d, dim_d), grsz_d(dim_d)
     complex(8), intent(in) :: cffac_d(ncf_d)
 
-    integer(8), intent(in) :: ncf_f, dim_f, szz_f
-    integer(8), intent(in) :: conff_f(ncf_f), confb_f(ncf_f), lid_f(ibset(0_8, nof) + 1), rid_f(ibset(0_8, nob))
+    integer(8), intent(in) :: nebm_f, ncf_f, dim_f, szz_f
+    integer(8), intent(in) :: conff_f(ncf_f), confb_f(ncf_f)
+    integer(8), intent(in) :: binom_f(nebm_f + 1, nob + 1)
+    integer(8), intent(in) :: lid_f(ishft(binom_f(nebm_f + 1, nob - norb + 1) + 1, nof - norf) + 1)
+    integer(8), intent(in) :: rid_f(ishft(binom_f(nebm_f + 1, norb + 1) + 1, norf) + 1)
     integer(8), intent(in) :: cfgr_f(ncf_f), grel_f(szz_f, dim_f), grsz_f(dim_f)
     complex(8), intent(in) :: cffac_f(ncf_f)
 
@@ -167,6 +180,7 @@ subroutine generate_sop(nof, nob, &
     integer(8), intent(in) :: disp_std
 
     integer(8) :: e, em, g, g1, i, i1, cff, cfb, cff1, cfb1, t
+    integer(8) :: nb(nob), nb1(nob)
     integer(8) :: index, last_id, mult
     complex(8) :: phase
     integer(8), allocatable :: last_el(:)
@@ -174,10 +188,11 @@ subroutine generate_sop(nof, nob, &
 
     call omp_set_num_threads(num_th)
     if (disp_std == 1) print *, 'Generating operator start'
-    !$omp parallel shared(nof, nob, ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d), &
-    !$omp& shared(ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f), &
+    !$omp parallel shared(nof, nob, norf, norb), &
+    !$omp& shared(nebm_d, ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, binom_d), &
+    !$omp& shared(nebm_f, ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, binom_f), &
     !$omp& shared(ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel, colptr, rowid, elval, disp_std), & 
-    !$omp& private(g, g1, e, em, i, i1, cff, cfb, cff1, cfb1, index, last_el, last_id, phase, mult, val, fac, fac1, t)
+    !$omp& private(g, g1, e, em, i, i1, cff, cfb, nb, cff1, cfb1, nb1, index, last_el, last_id, phase, mult, val, fac, fac1, t)
     allocate(last_el(dim_f))
     last_el = 0
     !$omp do
@@ -198,13 +213,15 @@ subroutine generate_sop(nof, nob, &
             fac = cffac_d(i)
             cff = conff_d(i)
             cfb = confb_d(i)
+            nb = decode_nb(nob, nebm_d, cfb, binom_d)
 
             do t = 1, ntm
-                phase = shopping(cff, cfb, cff1, cfb1, nof, nob, nc, cstr_tms(:, t))
+                phase = shopping(cff, nb, cff1, nb1, nof, nob, nc, cstr_tms(:, t))
                 if (phase == 0) cycle
-                i1 = search_scf(nof, nob, lid_f, rid_f, cff1, cfb1)
+                i1 = search_scf(nof, nob, norf, norb, nebm_f, lid_f, rid_f, cff1, nb1, binom_f)
                 if (i1 <= 0 .or. i1 > ncf_f) cycle
                 if (cff1 /= conff_f(i1)) cycle
+                cfb1 = encode_nb(nob, nebm_f, nb1, binom_f)
                 if (cfb1 /= confb_f(i1)) cycle
                 val = fac_tms(t) * phase
 
@@ -230,21 +247,27 @@ subroutine generate_sop(nof, nob, &
     if (disp_std == 1) print *, 'Generating operator finish'
 end subroutine
 
-subroutine generate_sop_re(nof, nob, &
-    ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, &
-    ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, &
+subroutine generate_sop_re(nof, nob, norf, norb, &
+    nebm_d, ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, binom_d, &
+    nebm_f, ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, binom_f, &
     ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel, colptr, rowid, elval, num_th, disp_std)
     use omp_lib
     implicit none
-    integer(8), intent(in) :: nof, nob
+    integer(8), intent(in) :: nof, nob, norf, norb
 
-    integer(8), intent(in) :: ncf_d, dim_d, szz_d
-    integer(8), intent(in) :: conff_d(ncf_d), confb_d(ncf_d),lid_d(ibset(0_8, nof) + 1), rid_d(ibset(0_8, nob))
+    integer(8), intent(in) :: nebm_d, ncf_d, dim_d, szz_d
+    integer(8), intent(in) :: conff_d(ncf_d), confb_d(ncf_d)
+    integer(8), intent(in) :: binom_d(nebm_d + 1, nob + 1)
+    integer(8), intent(in) :: lid_d(ishft(binom_d(nebm_d + 1, nob - norb + 1) + 1, nof - norf) + 1)
+    integer(8), intent(in) :: rid_d(ishft(binom_d(nebm_d + 1, norb + 1) + 1, norf) + 1)
     integer(8), intent(in) :: cfgr_d(ncf_d), grel_d(szz_d, dim_d), grsz_d(dim_d)
     complex(8), intent(in) :: cffac_d(ncf_d)
 
-    integer(8), intent(in) :: ncf_f, dim_f, szz_f
-    integer(8), intent(in) :: conff_f(ncf_f), confb_f(ncf_f), lid_f(ibset(0_8, nof) + 1), rid_f(ibset(0_8, nob))
+    integer(8), intent(in) :: nebm_f, ncf_f, dim_f, szz_f
+    integer(8), intent(in) :: conff_f(ncf_f), confb_f(ncf_f)
+    integer(8), intent(in) :: binom_f(nebm_f + 1, nob + 1)
+    integer(8), intent(in) :: lid_f(ishft(binom_f(nebm_f + 1, nob - norb + 1) + 1, nof - norf) + 1)
+    integer(8), intent(in) :: rid_f(ishft(binom_f(nebm_f + 1, norb + 1) + 1, norf) + 1)
     integer(8), intent(in) :: cfgr_f(ncf_f), grel_f(szz_f, dim_f), grsz_f(dim_f)
     complex(8), intent(in) :: cffac_f(ncf_f)
 
@@ -259,6 +282,7 @@ subroutine generate_sop_re(nof, nob, &
     integer(8), intent(in) :: disp_std
 
     integer(8) :: e, em, g, g1, i, i1, cff, cfb, cff1, cfb1, t
+    integer(8) :: nb(nob), nb1(nob)
     integer(8) :: index, last_id, mult
     complex(8) :: phase
     integer(8), allocatable :: last_el(:)
@@ -266,10 +290,11 @@ subroutine generate_sop_re(nof, nob, &
 
     call omp_set_num_threads(num_th)
     if (disp_std == 1) print *, 'Generating operator start'
-    !$omp parallel shared(nof, nob, ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d), &
-    !$omp& shared(ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f), &
+    !$omp parallel shared(nof, nob, norf, norb), &
+    !$omp& shared(nebm_d, ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, binom_d), &
+    !$omp& shared(nebm_f, ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, binom_f), &
     !$omp& shared(ntm, nc, cstr_tms, fac_tms, red_q, sym_q, nel, colptr, rowid, elval, disp_std), & 
-    !$omp& private(g, g1, e, em, i, i1, cff, cfb, cff1, cfb1, index, last_el, last_id, phase, mult, val, fac, fac1, t)
+    !$omp& private(g, g1, e, em, i, i1, cff, cfb, nb, cff1, cfb1, nb1, index, last_el, last_id, phase, mult, val, fac, fac1, t)
     allocate(last_el(dim_f))
     last_el = 0
     !$omp do
@@ -290,13 +315,15 @@ subroutine generate_sop_re(nof, nob, &
             fac = cffac_d(i)
             cff = conff_d(i)
             cfb = confb_d(i)
+            nb = decode_nb(nob, nebm_d, cfb, binom_d)
 
             do t = 1, ntm
-                phase = shopping(cff, cfb, cff1, cfb1, nof, nob, nc, cstr_tms(:, t))
+                phase = shopping(cff, nb, cff1, nb1, nof, nob, nc, cstr_tms(:, t))
                 if (phase == 0) cycle
-                i1 = search_scf(nof, nob, lid_f, rid_f, cff1, cfb1)
+                i1 = search_scf(nof, nob, norf, norb, nebm_f, lid_f, rid_f, cff1, nb1, binom_f)
                 if (i1 <= 0 .or. i1 > ncf_f) cycle
                 if (cff1 /= conff_f(i1)) cycle
+                cfb1 = encode_nb(nob, nebm_f, nb1, binom_f)
                 if (cfb1 /= confb_f(i1)) cycle
                 val = fac_tms(t) * phase
 
@@ -322,21 +349,27 @@ subroutine generate_sop_re(nof, nob, &
     if (disp_std == 1) print *, 'Generating operator finish'
 end subroutine
 
-subroutine action_sop(nof, nob, &
-    ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, &
-    ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, &
+subroutine action_sop(nof, nob, norf, norb, &
+    nebm_d, ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, binom_d, &
+    nebm_f, ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, binom_f, &
     ntm, nc, cstr_tms, fac_tms, red_q, st_d, st_f, num_th, disp_std)
     use omp_lib
     implicit none
-    integer(8), intent(in) :: nof, nob
+    integer(8), intent(in) :: nof, nob, norf, norb
 
-    integer(8), intent(in) :: ncf_d, dim_d, szz_d
-    integer(8), intent(in) :: conff_d(ncf_d), confb_d(ncf_d),lid_d(ibset(0_8, nof) + 1), rid_d(ibset(0_8, nob))
+    integer(8), intent(in) :: nebm_d, ncf_d, dim_d, szz_d
+    integer(8), intent(in) :: conff_d(ncf_d), confb_d(ncf_d)
+    integer(8), intent(in) :: binom_d(nebm_d + 1, nob + 1)
+    integer(8), intent(in) :: lid_d(ishft(binom_d(nebm_d + 1, nob - norb + 1) + 1, nof - norf) + 1)
+    integer(8), intent(in) :: rid_d(ishft(binom_d(nebm_d + 1, norb + 1) + 1, norf) + 1)
     integer(8), intent(in) :: cfgr_d(ncf_d), grel_d(szz_d, dim_d), grsz_d(dim_d)
     complex(8), intent(in) :: cffac_d(ncf_d)
 
-    integer(8), intent(in) :: ncf_f, dim_f, szz_f
-    integer(8), intent(in) :: conff_f(ncf_f), confb_f(ncf_f), lid_f(ibset(0_8, nof) + 1), rid_f(ibset(0_8, nob))
+    integer(8), intent(in) :: nebm_f, ncf_f, dim_f, szz_f
+    integer(8), intent(in) :: conff_f(ncf_f), confb_f(ncf_f)
+    integer(8), intent(in) :: binom_f(nebm_f + 1, nob + 1)
+    integer(8), intent(in) :: lid_f(ishft(binom_f(nebm_f + 1, nob - norb + 1) + 1, nof - norf) + 1)
+    integer(8), intent(in) :: rid_f(ishft(binom_f(nebm_f + 1, norb + 1) + 1, norf) + 1)
     integer(8), intent(in) :: cfgr_f(ncf_f), grel_f(szz_f, dim_f), grsz_f(dim_f)
     complex(8), intent(in) :: cffac_f(ncf_f)
 
@@ -352,15 +385,17 @@ subroutine action_sop(nof, nob, &
     integer(8), intent(in) :: disp_std
 
     integer(8) :: e, em, g, g1, i, i1, cff, cfb, cff1, cfb1, t, mult
+    integer(8) :: nb(nob), nb1(nob)
     complex(8) :: phase, val, fac, fac1
 
     call omp_set_num_threads(num_th)
     st_f = 0
     if (disp_std == 1) print *, 'Generating operator start'
-    !$omp parallel shared(nof, nob, ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d), &
-    !$omp& shared(ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f), &
+    !$omp parallel shared(nof, nob, norf, norb), &
+    !$omp& shared(nebm_d, ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, binom_d), &
+    !$omp& shared(nebm_f, ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, binom_f), &
     !$omp& shared(ntm, nc, cstr_tms, fac_tms, red_q, st_d, st_f, disp_std), & 
-    !$omp& private(g, g1, e, em, i, i1, cff, cfb, cff1, cfb1, phase, mult, val, fac, fac1, st_f1)
+    !$omp& private(g, g1, e, em, i, i1, cff, cfb, nb, cff1, cfb1, nb1, phase, mult, val, fac, fac1, st_f1)
     allocate(st_f1(dim_f))
     st_f1 = 0
     !$omp do
@@ -380,13 +415,15 @@ subroutine action_sop(nof, nob, &
             fac = cffac_d(i)
             cff = conff_d(i)
             cfb = confb_d(i)
+            nb = decode_nb(nob, nebm_d, cfb, binom_d)
 
             do t = 1, ntm
-                phase = shopping(cff, cfb, cff1, cfb1, nof, nob, nc, cstr_tms(:, t))
+                phase = shopping(cff, nb, cff1, nb1, nof, nob, nc, cstr_tms(:, t))
                 if (phase == 0) cycle
-                i1 = search_scf(nof, nob, lid_f, rid_f, cff1, cfb1)
+                i1 = search_scf(nof, nob, norf, norb, nebm_f, lid_f, rid_f, cff1, nb1, binom_f)
                 if (i1 <= 0 .or. i1 > ncf_f) cycle
                 if (cff1 /= conff_f(i1)) cycle
+                cfb1 = encode_nb(nob, nebm_f, nb1, binom_f)
                 if (cfb1 /= confb_f(i1)) cycle
                 val = fac_tms(t) * phase
 
@@ -406,21 +443,27 @@ subroutine action_sop(nof, nob, &
     if (disp_std == 1) print *, 'Generating operator finish'
 end subroutine
 
-subroutine overlap_sop(nof, nob, &
-    ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, &
-    ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, &
+subroutine overlap_sop(nof, nob, norf, norb, &
+    nebm_d, ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, binom_d, &
+    nebm_f, ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, binom_f, &
     ntm, nc, cstr_tms, fac_tms, red_q, st_d, st_f, prod, num_th, disp_std)
     use omp_lib
     implicit none
-    integer(8), intent(in) :: nof, nob
+    integer(8), intent(in) :: nof, nob, norf, norb
 
-    integer(8), intent(in) :: ncf_d, dim_d, szz_d
-    integer(8), intent(in) :: conff_d(ncf_d), confb_d(ncf_d),lid_d(ibset(0_8, nof) + 1), rid_d(ibset(0_8, nob))
+    integer(8), intent(in) :: nebm_d, ncf_d, dim_d, szz_d
+    integer(8), intent(in) :: conff_d(ncf_d), confb_d(ncf_d)
+    integer(8), intent(in) :: binom_d(nebm_d + 1, nob + 1)
+    integer(8), intent(in) :: lid_d(ishft(binom_d(nebm_d + 1, nob - norb + 1) + 1, nof - norf) + 1)
+    integer(8), intent(in) :: rid_d(ishft(binom_d(nebm_d + 1, norb + 1) + 1, norf) + 1)
     integer(8), intent(in) :: cfgr_d(ncf_d), grel_d(szz_d, dim_d), grsz_d(dim_d)
     complex(8), intent(in) :: cffac_d(ncf_d)
 
-    integer(8), intent(in) :: ncf_f, dim_f, szz_f
-    integer(8), intent(in) :: conff_f(ncf_f), confb_f(ncf_f), lid_f(ibset(0_8, nof) + 1), rid_f(ibset(0_8, nob))
+    integer(8), intent(in) :: nebm_f, ncf_f, dim_f, szz_f
+    integer(8), intent(in) :: conff_f(ncf_f), confb_f(ncf_f)
+    integer(8), intent(in) :: binom_f(nebm_f + 1, nob + 1)
+    integer(8), intent(in) :: lid_f(ishft(binom_f(nebm_f + 1, nob - norb + 1) + 1, nof - norf) + 1)
+    integer(8), intent(in) :: rid_f(ishft(binom_f(nebm_f + 1, norb + 1) + 1, norf) + 1)
     integer(8), intent(in) :: cfgr_f(ncf_f), grel_f(szz_f, dim_f), grsz_f(dim_f)
     complex(8), intent(in) :: cffac_f(ncf_f)
 
@@ -436,15 +479,17 @@ subroutine overlap_sop(nof, nob, &
     integer(8), intent(in) :: disp_std
 
     integer(8) :: e, em, g, g1, i, i1, cff, cfb, cff1, cfb1, t, mult
+    integer(8) :: nb(nob), nb1(nob)
     complex(8) :: val, fac, fac1, phase
 
     call omp_set_num_threads(num_th)
     prod = 0
     if (disp_std == 1) print *, 'Generating operator start'
-    !$omp parallel shared(nof, nob, ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d), &
-    !$omp& shared(ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f), &
+    !$omp parallel shared(nof, nob, norf, norb), &
+    !$omp& shared(nebm_d, ncf_d, dim_d, conff_d, confb_d, lid_d, rid_d, szz_d, cfgr_d, cffac_d, grel_d, grsz_d, binom_d), &
+    !$omp& shared(nebm_f, ncf_f, dim_f, conff_f, confb_f, lid_f, rid_f, szz_f, cfgr_f, cffac_f, grel_f, grsz_f, binom_f), &
     !$omp& shared(ntm, nc, cstr_tms, fac_tms, red_q, disp_std), & 
-    !$omp& private(g, g1, e, em, i, i1, cff, cfb, cff1, cfb1, phase, mult, val, fac, fac1, t, prod1)
+    !$omp& private(g, g1, e, em, i, i1, cff, cfb, nb, cff1, cfb1, nb1, phase, mult, val, fac, fac1, t, prod1)
     prod1 = 0
     !$omp do
     do g = 1, dim_d
@@ -463,13 +508,15 @@ subroutine overlap_sop(nof, nob, &
             fac = cffac_d(i)
             cff = conff_d(i)
             cfb = confb_d(i)
+            nb = decode_nb(nob, nebm_d, cfb, binom_d)
 
             do t = 1, ntm
-                phase = shopping(cff, cfb, cff1, cfb1, nof, nob, nc, cstr_tms(:, t))
+                phase = shopping(cff, nb, cff1, nb1, nof, nob, nc, cstr_tms(:, t))
                 if (phase == 0) cycle
-                i1 = search_scf(nof, nob, lid_f, rid_f, cff1, cfb1)
+                i1 = search_scf(nof, nob, norf, norb, nebm_f, lid_f, rid_f, cff1, nb1, binom_f)
                 if (i1 <= 0 .or. i1 > ncf_f) cycle
                 if (cff1 /= conff_f(i1)) cycle
+                cfb1 = encode_nb(nob, nebm_f, nb1, binom_f)
                 if (cfb1 /= confb_f(i1)) cycle
                 val = fac_tms(t) * phase
 
