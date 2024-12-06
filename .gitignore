@@ -1,7 +1,8 @@
 build/
 products/
-publish/
+lib/
 .vscode/
+build_tarballs.jl
 **.mod
 **.o
 **.so
