@@ -63,7 +63,7 @@ subroutine decomp_sbasis(nof, nob, norf, norb, &
         end do
         nbb = decode_nb(nob, nebm_b, confb_b(ib), binom_b)
         do o = 1, nob 
-            amp_cfa(ib) = amp_cfa(ib) * (amp_oba(o) ** nba(o))
+            amp_cfb(ib) = amp_cfb(ib) * (amp_obb(o) ** nbb(o))
         end do
     end do
 

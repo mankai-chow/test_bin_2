@@ -1,3 +1,4 @@
+mkdir lib_local
 cd src/
 FFLAGS=(-O3 -fPIC -fopenmp)
 for src in cfs.f90 bs.f90 op.f90 diag.f90 diag_re.f90 ent.f90; do
