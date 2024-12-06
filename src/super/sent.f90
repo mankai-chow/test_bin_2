@@ -4,7 +4,7 @@ use scfs
 
 contains
 
-subroutine decomp_basis(nof, nob, norf, norb, &
+subroutine decomp_sbasis(nof, nob, norf, norb, &
     nebm_0, ncf_0, dim_0, conff_0, confb_0, lid_0, rid_0, szz_0, cfgr_0, cffac_0, grel_0, grsz_0, binom_0, &
     nebm_a, ncf_a, dim_a, conff_a, confb_a, lid_a, rid_a, szz_a, cfgr_a, cffac_a, grel_a, grsz_a, binom_a, &
     nebm_b, ncf_b, dim_b, conff_b, confb_b, lid_b, rid_b, szz_b, cfgr_b, cffac_b, grel_b, grsz_b, binom_b, &
