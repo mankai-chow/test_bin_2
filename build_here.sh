@@ -1,6 +1,6 @@
 mkdir lib_local
 cd src/
-FFLAGS=(-O3 -fPIC -fopenmp)
+FFLAGS=(-O3 -fPIC -fopenmp -fdefault-integer-8)
 for src in cfs.f90 bs.f90 op.f90 diag.f90 diag_re.f90 ent.f90; do
     gfortran "${FFLAGS[@]}" -c ./${src}
 done
