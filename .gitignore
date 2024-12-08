@@ -2,7 +2,6 @@ build/
 products/
 lib/
 .vscode/
-build_tarballs.jl
 **.mod
 **.o
 **.so
